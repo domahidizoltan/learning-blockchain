@@ -1,0 +1,59 @@
+<!doctype html>
+<html data-theme="night">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Blockchain</title>
+    <script src="https://unpkg.com/htmx.org@1.9.5"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.7.3/dist/full.css" rel="stylesheet" type="text/css" />
+    <link href="static/output.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+    <div class="drawer drawer-open">
+        <input id="my-drawer-2" type="checkbox" class="drawer-toggle" />
+        <div class="drawer-side">
+            <label for="my-drawer-2" class="drawer-overlay"></label>
+            <ul class="menu p-4 w-60 min-h-full bg-slate-950 text-base-content">
+                <li><a hx-get="/test1"
+                    hx-trigger="load,click"
+                    hx-target="#formContent"
+                    hx-indicator=".loading"
+                    hx-swap="innerHTML">Sidebar Item 1</a></li>
+                <li><a hx-get="/test2"
+                    hx-target="#formContent"
+                    hx-indicator=".loading"
+                    hx-swap="innerHTML">Sidebar Item 2</a></li>
+            </ul>
+        </div>
+        
+        <div class="drawer-content flex flex-col items-center p-10">
+            <div class="card w-96 bg-base-100 bg-slate-800 shadow-xl" id="formContent">
+                <div id="spinner"><span></span></div>
+                {{ my_var }}
+                    <!-- <form>
+                        <h2>Learning Blockchain</h2>
+                        <label>Range:</label>
+                        <input type="range" min="0" max="10" placeholder="Type here" />
+                        <label>Date:</label>
+                        <input type="date" placeholder="Type here" required />
+                        <div>
+                            <button type="submit">Button</button>
+                        </div>
+                    </form> -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+
+</body>
+
+</html>

@@ -1,66 +1,20 @@
-## Foundry
+Learning Rust and Blockchain development on Ethereum using lessons from https://ethereum-blockchain-developer.com/2022-01-remix-introduction/00-overview/
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+stack:
+Rust, Actix, Foundry, Tailwind (DaisyUI)
 
-Foundry consists of:
 
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+# install foundry
 
-## Documentation
-
-https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
+```bash
+curl -L https://foundry.paradigm.xyz | bash`
 ```
 
-### Test
+`forge remappings`
 
-```shell
-$ forge test
-```
+run `anvil` to start the node
 
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+```bash
+npm install tailwindcss daisyui
+npx tailwindcss -i ./templates/input.css -o ./templates/static/output.css --watch
 ```

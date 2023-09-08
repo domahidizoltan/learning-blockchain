@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+    div#spinner {
+        @apply flex justify-center p-5
+    }
+    div#spinner span {
+        @apply loading loading-ring loading-md
+    }
+
+    form {
+        @apply card-body
+    }
+    form h2 {
+        @apply card-title mb-5
+    }
+    form input {
+        @apply input input-bordered input-primary w-full max-w-xs required:border-red-500
+    }
+    form button[type=submit] {
+        @apply btn btn-primary
+    }
+    form div:has(> button) {
+        @apply flex justify-end py-5
+    }
+}
