@@ -1,0 +1,11 @@
+<form hx-post="/lab/the-blockchain-messenger" hx-target="#debug" hx-indicator=".loading" hx-swap="afterbegin"
+    hx-on::after-request="this.reset()">
+    <div class="htmx-indicator">Updating...</div>
+    <label>Contract address:</label>
+    <input type="text" name="contract_address" placeholder="0x..." required>
+    <label>Message:</label>
+    <textarea name="message" rows="5" placeholder="Type here"></textarea>
+    <div>
+        <button type="submit">Submit</button>
+    </div>
+</form>

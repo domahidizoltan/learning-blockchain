@@ -20,23 +20,18 @@
         <div class="drawer-side">
             <label for="my-drawer-2" class="drawer-overlay"></label>
             <ul class="menu p-4 w-60 min-h-full bg-slate-950 text-base-content">
-                <li><a hx-get="/test1"
-                    hx-trigger="load,click"
-                    hx-target="#formContent"
-                    hx-indicator=".loading"
-                    hx-swap="innerHTML">Sidebar Item 1</a></li>
-                <li><a hx-get="/test2"
-                    hx-target="#formContent"
-                    hx-indicator=".loading"
-                    hx-swap="innerHTML">Sidebar Item 2</a></li>
+                <li><a hx-get="/lab/the-blockchain-messenger" hx-trigger="load,click" hx-target="#formContent"
+                        hx-indicator=".loading" hx-swap="innerHTML">The Blockchain Messenger</a></li>
+                <li><a hx-get="/test2" hx-target="#formContent" hx-indicator=".loading" hx-swap="innerHTML">Sidebar Item
+                        2</a></li>
             </ul>
         </div>
-        
+
         <div class="drawer-content flex flex-col items-center p-10">
             <div class="card w-96 bg-base-100 bg-slate-800 shadow-xl" id="formContent">
                 <div id="spinner"><span></span></div>
                 {{ my_var }}
-                    <!-- <form>
+                <!-- <form>
                         <h2>Learning Blockchain</h2>
                         <label>Range:</label>
                         <input type="range" min="0" max="10" placeholder="Type here" />
@@ -46,10 +41,11 @@
                             <button type="submit">Button</button>
                         </div>
                     </form> -->
-                </div>
             </div>
-
+            <span id="debug">debug</span>
         </div>
+
+    </div>
     </div>
 
 

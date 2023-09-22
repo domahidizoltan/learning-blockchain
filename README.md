@@ -18,3 +18,5 @@ run `anvil` to start the node
 npm install tailwindcss daisyui
 npx tailwindcss -i ./templates/input.css -o ./templates/static/output.css --watch
 ```
+
+install solidity (solc)

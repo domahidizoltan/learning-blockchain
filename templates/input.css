@@ -19,6 +19,9 @@
     form input {
         @apply input input-bordered input-primary w-full max-w-xs required:border-red-500
     }
+    form textarea {
+        @apply textarea textarea-bordered textarea-primary w-full max-w-xs required:border-red-500
+    }
     form button[type=submit] {
         @apply btn btn-primary
     }

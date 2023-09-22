@@ -12,9 +12,9 @@ docs/
 
 # Dotenv file
 .env
+.envrc
 
 node_modules/
-
 tmp/
 
 # Added by cargo
