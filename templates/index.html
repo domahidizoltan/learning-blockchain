@@ -1,0 +1,49 @@
+<!doctype html>
+<html data-theme="night">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Learning Blockchain</title>
+    <script src="https://unpkg.com/htmx.org@1.9.5"></script>
+    <script src="https://unpkg.com/htmx.org/dist/ext/ws.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@3.7.3/dist/full.css" rel="stylesheet" type="text/css" />
+    <link href="static/output.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+    <div class="drawer drawer-open">
+        <input id="my-drawer-2" type="checkbox" class="drawer-toggle" />
+        <div class="drawer-side h-auto">
+            <label for="my-drawer-2" class="drawer-overlay"></label>
+            <ul class="menu p-4 w-60 min-h-full bg-slate-950 text-base-content">
+                <li><a hx-get="/lab/the-blockchain-messenger" hx-trigger="load,click" hx-target="#template"
+                        hx-swap="innerHTML">The Blockchain Messenger</a></li>
+                <li><a hx-get="/test2" hx-target="#formContent" hx-swap="innerHTML">Sidebar Item
+                        2</a></li>
+            </ul>
+        </div>
+
+        <div class="drawer-content flex flex-col items-center p-10">
+            <div id="template"></div>
+        </div>
+
+    </div>
+
+    <div class="divider m-0" style="height: 0rem"></div>
+
+    <div class="w-full bg-slate-900" hx-ext="ws" ws-connect="/ws/debug">
+        <b class="text-xs p-2">Debug info:</b>
+        <div id="debug" hx-swap-oob="afterbegin"></div>
+    </div>
+
+
+
+
+</body>
+
+</html>

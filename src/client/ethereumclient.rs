@@ -15,9 +15,6 @@ use ethers::{
 use ethers_solc::{Solc, CompilerOutput};
 use k256::Secp256k1;
 
-use ethers::prelude::builders::Deployer;
-use k256::ecdsa::SigningKey;
-
 const PRIVATE_KEY: &str = "PRIVATE_KEY";
 const ENDPOINT: &str = "ENDPOINT";
 const CHAIN_ID: &str = "CHAIN_ID";
@@ -96,12 +93,9 @@ impl EthereumClient {
             Err(_) => return Err("could not create deployer".to_owned()),
         };
 
-println!("deployer");
          let contract = deployer.unwrap()
             .confirmations(0usize)
             .send().await;
-
-println!("contract: {:?}", contract);
 
         match contract {
             Ok(contract) => Ok(contract),

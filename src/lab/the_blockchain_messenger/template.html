@@ -1,0 +1,25 @@
+<div id="readme">{{readme}}</div>
+
+<div class="divider"></div>
+
+<div class="grid grid-cols-2 gap-4">
+    <div class="contentCard"
+        id="formContent"
+        hx-post="/lab/the-blockchain-messenger/deploy" 
+        hx-trigger="load" 
+        hx-target="#formContent"
+        hx-swap="innerHTML"
+    >
+        <div class="htmx-indicator"><span></span></div>
+    </div>
+
+    <div class="contentCard"
+        id="actionResult"
+        hx-get="/lab/the-blockchain-messenger/result" 
+        hx-trigger="load" 
+        hx-target="#actionResult"
+        hx-swap="innerHTML"
+    >
+        <div class="htmx-indicator"><span></span></div>
+    </div>
+</div>

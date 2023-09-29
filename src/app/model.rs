@@ -1,10 +1,16 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    sync::RwLock,
+};
 
 use crate::client::{EthereumClient, ContractInstanceType};
 use tera::Tera;
 
+use crate::app::debugservice::DebugService;
+
 pub struct State {
     pub tmpl: Tera,
     pub eth_client: EthereumClient,
-    pub contracts: HashMap<String, ContractInstanceType>
+    pub contracts: RwLock<HashMap<String, ContractInstanceType>>,
+    pub debug_service: DebugService,
 }

@@ -3,17 +3,17 @@
 @tailwind utilities;
 
 @layer components {
-    div#spinner {
+    div#spinner, div.htmx-indicator {
         @apply flex justify-center p-5
     }
-    div#spinner span {
+    div#spinner span, div.htmx-indicator span {
         @apply loading loading-ring loading-md
     }
 
-    form {
+    .contentCard {
         @apply card-body
     }
-    form h2 {
+    .contentCard h2 {
         @apply card-title mb-5
     }
     form input {
@@ -27,5 +27,27 @@
     }
     form div:has(> button) {
         @apply flex justify-end py-5
+    }
+
+    #template { width: 100% }
+
+    #readme h1 {
+        @apply text-2xl mb-5
+    }
+
+    #readme p {
+        @apply mb-3
+    }
+
+    #readme a {
+        @apply text-xs
+    }
+
+    .contentCard {
+        @apply card w-96 bg-base-100 bg-slate-800 shadow-xl
+    }
+
+    #debug {
+        @apply overflow-y-auto h-28 text-xs p-2 
     }
 }
