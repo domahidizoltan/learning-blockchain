@@ -1447,8 +1447,17 @@ form div:has(> button) {
   line-height: 1rem;
 }
 
+#debug p {
+  padding-bottom: 0.75rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
 .grid {
   display: grid;
+}
+
+.w-auto {
+  width: auto;
 }
 
 .grid-cols-2 {

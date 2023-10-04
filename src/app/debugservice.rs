@@ -1,4 +1,7 @@
 use std::sync::RwLock;
+use chrono::{DateTime, offset::Local};
+
+const DATE_FORMAT: &str = "%d/%m/%Y %T";
 
 pub struct DebugService {
     debug_session: RwLock<Option<actix_ws::Session>>,
@@ -20,8 +23,15 @@ impl DebugService {
         match self.debug_session.read() {
             Ok(debug_session) => match &*debug_session {
                 Some(session) => {
-                    let msg_format = format!(r#"<div id="debug" hx-swap-oob="afterbegin">{}<br/></div>"#, msg);
-                    session.clone().text(msg_format).await.unwrap();
+                    log::debug!("••• {}", msg);
+                    let now: DateTime<Local> = std::time::SystemTime::now().into();
+                    let msg_format = format!(r#"<div id="debug" hx-swap-oob="afterbegin"><p><b>• {} : </b>{}</p></div>"#, now.format(DATE_FORMAT), msg);
+                    match session.clone().text(msg_format).await {
+                        Ok(_) => {},
+                        Err(e) => {
+                            log::error!("failed to send debug event: {}", e);
+                        },
+                    }
                 },
                 None => {
                     log::warn!("failed to send debug event: no session");

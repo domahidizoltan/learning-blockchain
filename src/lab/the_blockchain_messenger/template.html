@@ -8,18 +8,23 @@
         hx-post="/lab/the-blockchain-messenger/deploy" 
         hx-trigger="load" 
         hx-target="#formContent"
+        hx-target-*=".errors"
         hx-swap="innerHTML"
     >
+        <span>Deploying contract {{contract_name}}.sol ...</span>
         <div class="htmx-indicator"><span></span></div>
+        <div class="errors"></div>
     </div>
 
-    <div class="contentCard"
+    <div class="contentCard w-auto"
         id="actionResult"
         hx-get="/lab/the-blockchain-messenger/result" 
-        hx-trigger="load" 
+        hx-trigger="loadResult from:#formContent"
         hx-target="#actionResult"
+        hx-target-*=".errors"
         hx-swap="innerHTML"
     >
-        <div class="htmx-indicator"><span></span></div>
+        <div class="htmx-indicator" style="opacity: 1;"><span></span></div>
+        <div class="errors"></div>
     </div>
 </div>

@@ -1,9 +1,12 @@
-<form hx-post="/lab/the-blockchain-messenger/form" hx-target="#debug" hx-swap="afterbegin"
+<form hx-post="/lab/the-blockchain-messenger/form" 
+    hx-target-*=".errors"
     hx-on::after-request="this.reset()">
     <h2>Update message</h2>
     <label>Message:</label>
     <textarea name="message" rows="5" placeholder="Type here"></textarea>
-    <div>
-        <button type="submit">Submit</button>
+    <div class="grid grid-cols-2 gap-4">
+        <div class="htmx-indicator"><span></span></div>
+        <div><button type="submit">Submit</button></div>
     </div>
+    <div class="errors"></div>
 </form>

@@ -48,6 +48,9 @@
     }
 
     #debug {
-        @apply overflow-y-auto h-28 text-xs p-2 
+        @apply overflow-y-auto h-28 text-xs p-2
+    }
+    #debug p {
+        @apply font-mono pb-3
     }
 }

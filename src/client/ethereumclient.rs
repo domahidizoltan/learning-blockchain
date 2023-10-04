@@ -10,8 +10,9 @@ use ethers::{
     contract::ContractFactory,
     signers::{LocalWallet, Signer},
     middleware::SignerMiddleware,
-    contract::ContractInstance,
+    contract::ContractInstance, types::Address,
 };
+use ethers_contract::Contract;
 use ethers_solc::{Solc, CompilerOutput};
 use k256::Secp256k1;
 
@@ -43,7 +44,6 @@ impl EthereumClient {
             Ok(provider) => Some(provider),
             Err(_) => return Err(format!("could not connect to endpoint {}", &endpoint)),
         };
-
         let wallet = match private_key[2..].parse::<LocalWallet>() {
             Ok(wallet) => Some(wallet),
             Err(_) => return Err("private key could not be parsed".to_owned()),
@@ -78,6 +78,22 @@ impl EthereumClient {
         self.client.clone()
     }
 
+    pub async fn contract_from_address(&self, contract_name: &str, contract_address: &str) -> Result<ContractInstanceType, String> {
+        let compiled = self.contracts.find(contract_name);
+
+        let (abi, _bytecode, _runtime_bytecode) = match compiled {
+            Some(compiled) => compiled.into_parts_or_default(),
+            None => return Err(format!("could not find contract {}", contract_name)),
+        };
+
+        let address = match contract_address.parse::<Address>() {
+            Ok(adr) => adr,
+            Err(e) => return Err(format!("could not parse address: {}", e).to_owned()),
+        };
+
+        Ok(Contract::new(address, abi, self.client.clone()))
+    }
+
     pub async fn deploy_contract(&self, contract_name: &str) -> Result<ContractInstanceType, String> {
         let compiled = self.contracts.find(contract_name);
 
@@ -90,7 +106,7 @@ impl EthereumClient {
 
         let deployer = match factory.deploy(()) {
             Ok(deployer) => Some(deployer),
-            Err(_) => return Err("could not create deployer".to_owned()),
+            Err(e) => return Err(format!("could not create deployer: {}", e).to_owned()),
         };
 
          let contract = deployer.unwrap()
@@ -99,7 +115,7 @@ impl EthereumClient {
 
         match contract {
             Ok(contract) => Ok(contract),
-            Err(_) => return Err("could not deploy contract".to_owned()),
+            Err(e) => return Err(format!("could not deploy contract: {}", e).to_owned()),
         }
 
     }
