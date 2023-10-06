@@ -6,4 +6,4 @@
 >
 > We also count how many times the message was updated.
 
-[https://ethereum-blockchain-developer.com/2022-02-solidity-basics-blockchain-messenger/00-overview/](https://ethereum-blockchain-developer.com/2022-02-solidity-basics-blockchain-messenger/00-overview/)
+[source](https://ethereum-blockchain-developer.com/2022-02-solidity-basics-blockchain-messenger/00-overview/)
