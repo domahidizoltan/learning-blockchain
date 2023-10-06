@@ -1,23 +1,17 @@
-mod helper;
-mod handlers;
-mod lab;
 mod app;
 mod client;
+mod handlers;
+mod helper;
+mod lab;
 
 use client::EthereumClient;
 
-use std::{
-    sync::RwLock,
-    collections::HashMap,
-};
+use std::{collections::HashMap, sync::RwLock};
 
-use actix_web::{web, App, HttpServer, middleware::Logger};
 use actix_files as fs;
+use actix_web::{middleware::Logger, web, App, HttpServer};
+use app::{debugservice::DebugService, model::State as AppState};
 use tera::Tera;
-use app::{
-    model::State as AppState,
-    debugservice::DebugService,
-};
 
 fn create_tera() -> Tera {
     let mut tera = match Tera::new("templates/*.html") {
@@ -55,7 +49,7 @@ async fn main() -> std::io::Result<()> {
             }
         };
 
-        let state = AppState { 
+        let state = AppState {
             tmpl: create_tera(),
             eth_client,
             contracts: RwLock::new(HashMap::new()),

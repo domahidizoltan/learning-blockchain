@@ -1,5 +1,5 @@
+use chrono::{offset::Local, DateTime};
 use std::sync::RwLock;
-use chrono::{DateTime, offset::Local};
 
 const DATE_FORMAT: &str = "%d/%m/%Y %T";
 
@@ -25,22 +25,25 @@ impl DebugService {
                 Some(session) => {
                     log::debug!("••• {}", msg);
                     let now: DateTime<Local> = std::time::SystemTime::now().into();
-                    let msg_format = format!(r#"<div id="debug" hx-swap-oob="afterbegin"><p><b>• {} : </b>{}</p></div>"#, now.format(DATE_FORMAT), msg);
+                    let msg_format = format!(
+                        r#"<div id="debug" hx-swap-oob="afterbegin"><p><b>• {} : </b>{}</p></div>"#,
+                        now.format(DATE_FORMAT),
+                        msg
+                    );
                     match session.clone().text(msg_format).await {
-                        Ok(_) => {},
+                        Ok(_) => {}
                         Err(e) => {
                             log::error!("failed to send debug event: {}", e);
-                        },
+                        }
                     }
-                },
+                }
                 None => {
                     log::warn!("failed to send debug event: no session");
-                },
+                }
             },
             Err(e) => {
                 log::error!("failed to get debug session: {}", e);
-            },
+            }
         };
-        
     }
 }

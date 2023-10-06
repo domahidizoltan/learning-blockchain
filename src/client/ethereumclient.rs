@@ -1,27 +1,28 @@
 use crate::helper::get_env_var;
 
-use std::{
-    path::Path,
-    sync::Arc,
-};
 use ethers::{
-    prelude::Wallet,
-    providers::{Provider, Http},
     contract::ContractFactory,
-    signers::{LocalWallet, Signer},
+    contract::ContractInstance,
     middleware::SignerMiddleware,
-    contract::ContractInstance, types::Address,
+    prelude::Wallet,
+    providers::{Http, Provider},
+    signers::{LocalWallet, Signer},
+    types::Address,
 };
 use ethers_contract::Contract;
-use ethers_solc::{Solc, CompilerOutput};
+use ethers_solc::{CompilerOutput, Solc};
 use k256::Secp256k1;
+use std::{path::Path, sync::Arc};
 
 const PRIVATE_KEY: &str = "PRIVATE_KEY";
 const ENDPOINT: &str = "ENDPOINT";
 const CHAIN_ID: &str = "CHAIN_ID";
 const CONTRACTS_PATH: &str = "CONTRACTS_PATH";
 
-pub type ContractInstanceType = ContractInstance<Arc<SignerMiddleware<ethers_providers::Provider<Http>, Wallet<ecdsa::SigningKey<Secp256k1>>>>, SignerMiddleware<ethers_providers::Provider<Http>, Wallet<ecdsa::SigningKey<Secp256k1>>>>;
+pub type ContractInstanceType = ContractInstance<
+    Arc<SignerMiddleware<ethers_providers::Provider<Http>, Wallet<ecdsa::SigningKey<Secp256k1>>>>,
+    SignerMiddleware<ethers_providers::Provider<Http>, Wallet<ecdsa::SigningKey<Secp256k1>>>,
+>;
 
 pub struct EthereumClient {
     client: std::sync::Arc<SignerMiddleware<Provider<Http>, LocalWallet>>,
@@ -30,7 +31,6 @@ pub struct EthereumClient {
 
 impl EthereumClient {
     pub fn new() -> Result<Self, String> {
-
         let private_key = get_env_var(PRIVATE_KEY)?;
         let endpoint = get_env_var(ENDPOINT)?;
         let chain_id = get_env_var(CHAIN_ID)?;
@@ -53,11 +53,11 @@ impl EthereumClient {
         let client = SignerMiddleware::new(provider.unwrap(), wallet_with_chain_id);
 
         match EthereumClient::compile_contracts() {
-            Ok(contracts) => Ok(EthereumClient{
+            Ok(contracts) => Ok(EthereumClient {
                 client: std::sync::Arc::new(client),
-                contracts: contracts,
+                contracts,
             }),
-            Err(e) => return Err(e),
+            Err(e) => Err(e),
         }
     }
 
@@ -70,7 +70,7 @@ impl EthereumClient {
 
         match Solc::default().compile_source(source.unwrap()) {
             Ok(compiled) => Ok(compiled),
-            Err(e) => return Err(format!("could not compile contracts {}", e)),
+            Err(e) => Err(format!("could not compile contracts {}", e)),
         }
     }
 
@@ -78,7 +78,11 @@ impl EthereumClient {
         self.client.clone()
     }
 
-    pub async fn contract_from_address(&self, contract_name: &str, contract_address: &str) -> Result<ContractInstanceType, String> {
+    pub async fn contract_from_address(
+        &self,
+        contract_name: &str,
+        contract_address: &str,
+    ) -> Result<ContractInstanceType, String> {
         let compiled = self.contracts.find(contract_name);
 
         let (abi, _bytecode, _runtime_bytecode) = match compiled {
@@ -88,37 +92,35 @@ impl EthereumClient {
 
         let address = match contract_address.parse::<Address>() {
             Ok(adr) => adr,
-            Err(e) => return Err(format!("could not parse address: {}", e).to_owned()),
+            Err(e) => return Err(format!("could not parse address: {}", e)),
         };
 
         Ok(Contract::new(address, abi, self.client.clone()))
     }
 
-    pub async fn deploy_contract(&self, contract_name: &str) -> Result<ContractInstanceType, String> {
+    pub async fn deploy_contract(
+        &self,
+        contract_name: &str,
+    ) -> Result<ContractInstanceType, String> {
         let compiled = self.contracts.find(contract_name);
 
         let (abi, bytecode, _runtime_bytecode) = match compiled {
             Some(compiled) => compiled.into_parts_or_default(),
             None => return Err(format!("could not find contract {}", contract_name)),
         };
-        
+
         let factory = ContractFactory::new(abi, bytecode, self.client.clone());
 
         let deployer = match factory.deploy(()) {
             Ok(deployer) => Some(deployer),
-            Err(e) => return Err(format!("could not create deployer: {}", e).to_owned()),
+            Err(e) => return Err(format!("could not create deployer: {}", e)),
         };
 
-         let contract = deployer.unwrap()
-            .confirmations(0usize)
-            .send().await;
+        let contract = deployer.unwrap().confirmations(0usize).send().await;
 
         match contract {
             Ok(contract) => Ok(contract),
-            Err(e) => return Err(format!("could not deploy contract: {}", e).to_owned()),
+            Err(e) => Err(format!("could not deploy contract: {}", e)),
         }
-
     }
-
-
 }

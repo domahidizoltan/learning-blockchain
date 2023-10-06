@@ -1,6 +1,3 @@
 pub mod ethereumclient;
 
-pub use ethereumclient::{
-    EthereumClient as EthereumClient, 
-    ContractInstanceType as ContractInstanceType,
-};
+pub use ethereumclient::{ContractInstanceType, EthereumClient};

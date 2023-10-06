@@ -31,13 +31,23 @@ watch-tailwind:
 	rm templates/static/output.css
 	npx tailwindcss -i ./templates/input.css -o ./templates/static/output.css --watch --minify
 
+check:
+	# cargo fix --allow-dirty
+	cargo fmt
+	cargo clippy
+	cargo check
+
+build: check
+	cargo clean
+	cargo build --release
+
 run:
 	direnv allow
 	cargo run
 
 BLOCK_NR=0
 web3-get-block:
-# web3 --rpc-url=$(ENDPOINT) block --input $(ACCOUNT)
+	# web3 --rpc-url=$(ENDPOINT) block --input $(ACCOUNT)
 	web3 --rpc-url=$(ENDPOINT) block --input $(BLOCK_NR)
 
 web3-get-balance:

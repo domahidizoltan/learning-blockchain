@@ -1,11 +1,9 @@
-
-use actix_web::{get, web, HttpResponse, Responder, HttpRequest, Error};
-use tera::Context;
 use crate::{app::model::State as AppState, helper};
+use actix_web::{get, web, Error, HttpRequest, HttpResponse, Responder};
+use tera::Context;
 
 pub fn setup_handlers(cfg: &mut web::ServiceConfig) {
-    cfg
-        .service(index)
+    cfg.service(index)
         .service(deploy)
         .service(lab_handler)
         .service(web::resource("/ws/debug").route(web::get().to(debug_events)));
@@ -18,8 +16,8 @@ async fn index(app_state: web::Data<AppState>) -> impl Responder {
         Ok(rendered) => rendered,
         Err(e) => {
             println!("error rendering template: {:?}", e);
-            return helper::ui_alert(e.to_string())
-        },
+            return helper::ui_alert(e.to_string());
+        }
     };
     HttpResponse::Ok().body(rendered)
 }
@@ -32,8 +30,8 @@ async fn deploy(name: web::Path<String>, app_state: web::Data<AppState>) -> impl
         Ok(rendered) => rendered,
         Err(e) => {
             println!("error rendering template: {:?}", e);
-            return helper::ui_alert(e.to_string())
-        },
+            return helper::ui_alert(e.to_string());
+        }
     };
 
     HttpResponse::Ok().body(rendered)
@@ -42,14 +40,14 @@ async fn deploy(name: web::Path<String>, app_state: web::Data<AppState>) -> impl
 #[get("/lab/{path}/form")]
 async fn lab_handler(path: web::Path<String>, app_state: web::Data<AppState>) -> impl Responder {
     let context = Context::new();
-    let p = path.replace("-", "_");
+    let p = path.replace('-', "_");
     let file_name = format!("lab/{p}/form.html");
     let rendered = match app_state.tmpl.render(&file_name, &context) {
         Ok(rendered) => rendered,
         Err(e) => {
             println!("error rendering template: {:?}", e);
-            return helper::ui_alert(e.to_string())
-        },
+            return helper::ui_alert(e.to_string());
+        }
     };
 
     HttpResponse::Ok()
@@ -57,8 +55,12 @@ async fn lab_handler(path: web::Path<String>, app_state: web::Data<AppState>) ->
         .body(rendered)
 }
 
-async fn debug_events(req: HttpRequest, stream: web::Payload, app_state: web::Data<AppState>) -> Result<HttpResponse, Error> {
+async fn debug_events(
+    req: HttpRequest,
+    stream: web::Payload,
+    app_state: web::Data<AppState>,
+) -> Result<HttpResponse, Error> {
     let (res, session, _msg_stream) = actix_ws::handle(&req, stream)?;
-    app_state.debug_service.set_debug_session(session.clone());
+    app_state.debug_service.set_debug_session(session);
     Ok(res)
 }

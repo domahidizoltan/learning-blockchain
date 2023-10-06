@@ -1,9 +1,6 @@
-use std::{
-    collections::HashMap,
-    sync::RwLock,
-};
+use std::{collections::HashMap, sync::RwLock};
 
-use crate::client::{EthereumClient, ContractInstanceType};
+use crate::client::{ContractInstanceType, EthereumClient};
 use tera::Tera;
 
 use crate::app::debugservice::DebugService;

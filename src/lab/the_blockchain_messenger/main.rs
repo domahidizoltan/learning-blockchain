@@ -1,14 +1,20 @@
-use std::path::Path;
-use actix_web::{web::{self}, HttpResponse, Responder};
-use tera::Context;
-use serde::Deserialize;
 use crate::{app::model::State as AppState, helper};
-use ethers::{contract::abigen, types::{U256, H256}};
+use actix_web::{
+    web::{self},
+    HttpResponse, Responder,
+};
+use ethers::{
+    contract::abigen,
+    types::{H256, U256},
+};
 use ethers_providers::Middleware;
+use serde::Deserialize;
+use std::path::Path;
+use tera::Context;
 
 #[derive(Deserialize, Debug)]
 struct FormData {
-    message: String
+    message: String,
 }
 
 abigen!(
@@ -26,11 +32,17 @@ const LAB_BASEURL: &str = "/lab/the-blockchain-messenger";
 const CONTRACT_ADDRESS_ENVVAR: &str = "CONTRACT_ADDRESS_THEBLOCKCHAINMESSENGER";
 
 pub fn setup_handlers(cfg: &mut web::ServiceConfig) {
-    cfg
-        .service(web::resource(LAB_BASEURL).route(web::get().to(load_template_handler)))
-        .service(web::resource(format!("{}/result", LAB_BASEURL)).route(web::get().to(tx_result_handler)))
-        .service(web::resource(format!("{}/deploy", LAB_BASEURL)).route(web::post().to(deploy_handler)))
-        .service(web::resource(format!("{}/form", LAB_BASEURL)).route(web::post().to(submit_handler)));
+    cfg.service(web::resource(LAB_BASEURL).route(web::get().to(load_template_handler)))
+        .service(
+            web::resource(format!("{}/result", LAB_BASEURL))
+                .route(web::get().to(tx_result_handler)),
+        )
+        .service(
+            web::resource(format!("{}/deploy", LAB_BASEURL)).route(web::post().to(deploy_handler)),
+        )
+        .service(
+            web::resource(format!("{}/form", LAB_BASEURL)).route(web::post().to(submit_handler)),
+        );
 }
 
 async fn load_template_handler(app_state: web::Data<AppState>) -> impl Responder {
@@ -50,8 +62,8 @@ async fn load_template_handler(app_state: web::Data<AppState>) -> impl Responder
         Ok(rendered) => rendered,
         Err(e) => {
             println!("error rendering template: {:?}", e);
-            return helper::ui_alert(e.to_string())
-        },
+            return helper::ui_alert(e.to_string());
+        }
     };
 
     HttpResponse::Ok().body(rendered)
@@ -64,7 +76,7 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
         Ok(lock) => lock,
         Err(e) => return helper::ui_alert(e.to_string()),
     };
-    
+
     let contract = match lock.get(CONTRACT_NAME) {
         Some(contract) => contract,
         None => return helper::ui_alert(format!("contract {} not deployed", CONTRACT_NAME)),
@@ -88,7 +100,10 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
     let mut context = Context::new();
     context.insert("contract_address", &contract_address);
     context.insert("block_number", &block_number);
-    context.insert("block_hash", &format!("{:#x}", block.hash.unwrap_or_default()));
+    context.insert(
+        "block_hash",
+        &format!("{:#x}", block.hash.unwrap_or_default()),
+    );
     context.insert("parent_hash", &format!("{:#x}", block.parent_hash));
     context.insert("block_time", &block.time().unwrap_or_default().to_string());
     context.insert("transaction", &format!("{:#x}", U256::from(tx.as_bytes())));
@@ -109,8 +124,8 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
         Ok(rendered) => rendered,
         Err(e) => {
             println!("error rendering template: {:?}", e);
-            return helper::ui_alert(e.to_string())
-        },
+            return helper::ui_alert(e.to_string());
+        }
     };
 
     HttpResponse::Ok().body(rendered)
@@ -123,28 +138,51 @@ async fn deploy_handler(app_state: web::Data<AppState>) -> impl Responder {
     };
 
     if let Some(contract) = lock.get(CONTRACT_NAME) {
-        println!("contract {} already deployed: {:?}", CONTRACT_NAME, contract);
+        println!(
+            "contract {} already deployed: {:?}",
+            CONTRACT_NAME, contract
+        );
     } else {
         let contract = match helper::get_env_var(CONTRACT_ADDRESS_ENVVAR) {
             Ok(adr) => {
-                app_state.debug_service.send_debug_event(format!("recreating contract {}.sol from address {}", CONTRACT_NAME, adr)).await;
-                match app_state.eth_client.contract_from_address(CONTRACT_NAME, adr.as_str()).await {
+                app_state
+                    .debug_service
+                    .send_debug_event(format!(
+                        "recreating contract {}.sol from address {}",
+                        CONTRACT_NAME, adr
+                    ))
+                    .await;
+                match app_state
+                    .eth_client
+                    .contract_from_address(CONTRACT_NAME, adr.as_str())
+                    .await
+                {
                     Ok(contract) => contract,
-                    Err(e) => return helper::ui_alert(e.to_string()),
+                    Err(e) => return helper::ui_alert(e),
                 }
-            },
+            }
             Err(_) => {
-                app_state.debug_service.send_debug_event(format!("deploying contract {}.sol ...", CONTRACT_NAME)).await;
+                app_state
+                    .debug_service
+                    .send_debug_event(format!("deploying contract {}.sol ...", CONTRACT_NAME))
+                    .await;
                 match app_state.eth_client.deploy_contract(CONTRACT_NAME).await {
                     Ok(contract) => {
-                        app_state.debug_service.send_debug_event(format!("{}.sol deployed to address {:#x}", CONTRACT_NAME, contract.address())).await;
+                        app_state
+                            .debug_service
+                            .send_debug_event(format!(
+                                "{}.sol deployed to address {:#x}",
+                                CONTRACT_NAME,
+                                contract.address()
+                            ))
+                            .await;
                         contract
-                    },
-                    Err(e) => return helper::ui_alert(e.to_string()),
+                    }
+                    Err(e) => return helper::ui_alert(e),
                 }
-            },
+            }
         };
-        
+
         lock.insert(CONTRACT_NAME.to_owned(), contract);
     }
 
@@ -153,8 +191,14 @@ async fn deploy_handler(app_state: web::Data<AppState>) -> impl Responder {
         .finish()
 }
 
-async fn submit_handler(form: web::Form<FormData>, app_state: web::Data<AppState>) -> impl Responder {
-    app_state.debug_service.send_debug_event(format!("update request received: {:?}", form)).await;
+async fn submit_handler(
+    form: web::Form<FormData>,
+    app_state: web::Data<AppState>,
+) -> impl Responder {
+    app_state
+        .debug_service
+        .send_debug_event(format!("update request received: {:?}", form))
+        .await;
 
     let lock = match app_state.contracts.read() {
         Ok(lock) => lock,
@@ -174,11 +218,14 @@ async fn submit_handler(form: web::Form<FormData>, app_state: web::Data<AppState
 
     match pending_tx.await {
         Ok(receipt) => {
-            app_state.debug_service.send_debug_event(format!("receipt: {:?}", receipt)).await;
+            app_state
+                .debug_service
+                .send_debug_event(format!("receipt: {:?}", receipt))
+                .await;
             HttpResponse::NoContent()
                 .append_header(("HX-Trigger", "loadResult"))
                 .finish()
-        },
+        }
         Err(e) => helper::ui_alert(e.to_string()),
     }
 }
