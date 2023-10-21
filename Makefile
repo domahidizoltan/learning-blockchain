@@ -6,13 +6,11 @@ install-tailwind:
 
 install-solidity:
 	asdf plugin add solidity
-	asdf plugin install solidity
 	asdf install solidity 0.8.21
 	asdf global solidity 0.8.21
 
 install-direnv:
 	asdf plugin add direnv
-	asdf plugin install direnv
 	asdf install direnv 2.32.2
 	asdf global direnv 2.32.2
 

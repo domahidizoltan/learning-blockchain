@@ -1,4 +1,4 @@
-use std::{collections::HashMap, sync::RwLock};
+use std::{collections::HashMap, env, sync::RwLock};
 
 use crate::client::{ContractInstanceType, EthereumClient};
 use tera::Tera;
@@ -10,4 +10,10 @@ pub struct State {
     pub eth_client: EthereumClient,
     pub contracts: RwLock<HashMap<String, ContractInstanceType>>,
     pub debug_service: DebugService,
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum Error {
+    #[error("env var {} must be set", .0)]
+    KeyNotSetError(String, #[source] env::VarError),
 }

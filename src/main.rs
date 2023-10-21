@@ -10,28 +10,19 @@ use std::{collections::HashMap, sync::RwLock};
 
 use actix_files as fs;
 use actix_web::{middleware::Logger, web, App, HttpServer};
-use app::{debugservice::DebugService, model::State as AppState};
+pub use app::{
+    debugservice::DebugService as AppDebug, model::Error as AppError, model::State as AppState,
+};
 use tera::Tera;
 
-fn create_tera() -> Tera {
-    let mut tera = match Tera::new("templates/*.html") {
-        Ok(t) => t,
-        Err(e) => {
-            println!("Parsing error(s): {}", e);
-            ::std::process::exit(1);
-        }
-    };
-    let labs_tera = match Tera::new("src/**/*.html") {
-        Ok(t) => t,
-        Err(e) => {
-            println!("Parsing error(s): {}", e);
-            ::std::process::exit(1);
-        }
-    };
-    tera.extend(&labs_tera).unwrap();
+fn create_tera() -> Result<Tera, tera::Error> {
+    let mut tera = Tera::new("templates/*.html")?;
+    let labs_tera = Tera::new("src/**/*.html")?;
+
+    tera.extend(&labs_tera)?;
     tera.autoescape_on(vec![]);
 
-    tera
+    Ok(tera)
 }
 
 #[actix_web::main]
@@ -41,19 +32,14 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         let logger = Logger::default();
 
-        let eth_client = match EthereumClient::new() {
-            Ok(eth_client) => eth_client,
-            Err(e) => {
-                println!("Error: {}", e);
-                ::std::process::exit(1);
-            }
-        };
+        let eth_client = EthereumClient::new().unwrap();
+        let tera = create_tera().unwrap();
 
         let state = AppState {
-            tmpl: create_tera(),
+            tmpl: tera,
             eth_client,
             contracts: RwLock::new(HashMap::new()),
-            debug_service: DebugService::new(),
+            debug_service: AppDebug::new(),
         };
         App::new()
             .wrap(logger)

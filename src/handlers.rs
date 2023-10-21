@@ -11,30 +11,26 @@ pub fn setup_handlers(cfg: &mut web::ServiceConfig) {
 
 #[get("/")]
 async fn index(app_state: web::Data<AppState>) -> impl Responder {
-    let context = Context::new();
-    let rendered = match app_state.tmpl.render("index.html", &context) {
-        Ok(rendered) => rendered,
+    match app_state.tmpl.render("index.html", &Context::new()) {
+        Ok(rendered) => HttpResponse::Ok().body(rendered),
         Err(e) => {
             println!("error rendering template: {:?}", e);
-            return helper::ui_alert(e.to_string());
+            helper::ui_alert(&e.to_string())
         }
-    };
-    HttpResponse::Ok().body(rendered)
+    }
 }
 
 #[get("/deploy/{name}")]
 async fn deploy(name: web::Path<String>, app_state: web::Data<AppState>) -> impl Responder {
     let mut context = Context::new();
     context.insert("contract_name", name.as_str());
-    let rendered = match app_state.tmpl.render("deploying.html", &context) {
-        Ok(rendered) => rendered,
+    match app_state.tmpl.render("deploying.html", &context) {
+        Ok(rendered) => HttpResponse::Ok().body(rendered),
         Err(e) => {
             println!("error rendering template: {:?}", e);
-            return helper::ui_alert(e.to_string());
+            helper::ui_alert(&e.to_string())
         }
-    };
-
-    HttpResponse::Ok().body(rendered)
+    }
 }
 
 #[get("/lab/{path}/form")]
@@ -42,17 +38,15 @@ async fn lab_handler(path: web::Path<String>, app_state: web::Data<AppState>) ->
     let context = Context::new();
     let p = path.replace('-', "_");
     let file_name = format!("lab/{p}/form.html");
-    let rendered = match app_state.tmpl.render(&file_name, &context) {
-        Ok(rendered) => rendered,
+    match app_state.tmpl.render(&file_name, &context) {
+        Ok(rendered) => HttpResponse::Ok()
+            .append_header(("HX-Trigger", "loadResult"))
+            .body(rendered),
         Err(e) => {
             println!("error rendering template: {:?}", e);
-            return helper::ui_alert(e.to_string());
+            helper::ui_alert(&e.to_string())
         }
-    };
-
-    HttpResponse::Ok()
-        .append_header(("HX-Trigger", "loadResult"))
-        .body(rendered)
+    }
 }
 
 async fn debug_events(

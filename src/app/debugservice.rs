@@ -19,7 +19,7 @@ impl DebugService {
         *ds = Some(session);
     }
 
-    pub async fn send_debug_event(&self, msg: String) {
+    pub async fn send_debug_event(&self, msg: &str) {
         match self.debug_session.read() {
             Ok(debug_session) => match &*debug_session {
                 Some(session) => {
@@ -30,20 +30,13 @@ impl DebugService {
                         now.format(DATE_FORMAT),
                         msg
                     );
-                    match session.clone().text(msg_format).await {
-                        Ok(_) => {}
-                        Err(e) => {
-                            log::error!("failed to send debug event: {}", e);
-                        }
+                    if let Some(err) = session.clone().text(msg_format).await.err() {
+                        log::error!("failed to send debug event: {}", err);
                     }
                 }
-                None => {
-                    log::warn!("failed to send debug event: no session");
-                }
+                None => log::warn!("failed to send debug event: no session"),
             },
-            Err(e) => {
-                log::error!("failed to get debug session: {}", e);
-            }
+            Err(e) => log::error!("failed to get debug session: {}", e),
         };
     }
 }
