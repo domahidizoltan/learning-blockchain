@@ -1,0 +1,44 @@
+<form hx-post="/lab/smart-money/form" hx-target-*=".errors" hx-on::after-request="this.reset()">
+    <input type="hidden" name="action" id="formAction">
+    <h2>Deposit</h2>
+    <label>Amount:</label>
+    <div class="grid grid-cols-3 gap-4">
+        <div class="col-span-2">
+            <input type="number" name="amount" value="100"/>
+        </div>
+        <div class="p-0">
+            <button type="submit" hx-on="mousedown: document.getElementById('formAction').value='Deposit'">Deposit</button>
+        </div>
+    </div>
+    <div class="divider"></div>
+    
+    <h2>Withdraw all</h2>
+    <label>Address:</label>
+    <div class="grid grid-cols-3 gap-4">
+        <div class="col-span-2">
+            <input type="text" value="{{current_address}}" disabled/>
+        </div>
+        <div class="p-0">
+            <button type="submit" hx-on="mousedown: document.getElementById('formAction').value='WithdrawAll'">Withdraw</button>
+        </div>
+    </div>
+    <div class="divider"></div>
+    
+    <h2>Withdraw to address</h2>
+    <label>Address:</label>
+    <div class="grid grid-cols-3 gap-4">
+        <div class="col-span-2">
+            <select name="to_address">
+            {% for adr in other_account_addresses %}
+                <option value="{{adr}}">{{adr}}</option>
+            {% endfor %}
+            </select>
+        </div>
+        <div class="p-0">
+            <button type="submit" hx-on="mousedown: document.getElementById('formAction').value='WithdrawToAddress'">Withdraw</button>
+        </div>
+    </div>
+    
+    <div class="htmx-indicator"><span></span></div>
+    <div class="errors"></div>
+</form>

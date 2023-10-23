@@ -35,11 +35,14 @@ async fn main() -> std::io::Result<()> {
         let eth_client = EthereumClient::new().unwrap();
         let tera = create_tera().unwrap();
 
+        let addresses = helper::get_all_account_addresses().unwrap();
+
         let state = AppState {
             tmpl: tera,
             eth_client,
             contracts: RwLock::new(HashMap::new()),
             debug_service: AppDebug::new(),
+            accounts: addresses,
         };
         App::new()
             .wrap(logger)
@@ -47,6 +50,7 @@ async fn main() -> std::io::Result<()> {
             .service(fs::Files::new("static", "templates/static"))
             .configure(handlers::setup_handlers)
             .configure(lab::the_blockchain_messenger_handlers)
+            .configure(lab::smart_money_handlers)
     })
     .workers(1) //TODO multiple workers
     .bind(("0.0.0.0", 8080))?

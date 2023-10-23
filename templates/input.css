@@ -22,6 +22,9 @@
     form textarea {
         @apply textarea textarea-bordered textarea-primary w-full max-w-xs required:border-red-500
     }
+    form select {
+        @apply select select-bordered select-primary w-full max-w-xs required:border-red-500
+    }
     form button[type=submit] {
         @apply btn btn-primary
     }
@@ -33,6 +36,10 @@
 
     #readme h1 {
         @apply text-2xl mb-5
+    }
+
+    #readme h2 {
+        @apply text-xl mb-2
     }
 
     #readme p {

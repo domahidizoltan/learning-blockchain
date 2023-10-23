@@ -5,7 +5,7 @@ use actix_web::{
 };
 use ethers::{
     contract::abigen,
-    types::{H256, U256},
+    types::{Address, H256, U256},
 };
 use ethers_providers::Middleware;
 use serde::Deserialize;
@@ -13,23 +13,34 @@ use std::path::Path;
 use tera::Context;
 
 #[derive(Deserialize, Debug)]
+enum Action {
+    Deposit,
+    WithdrawAll,
+    WithdrawToAddress,
+}
+
+#[derive(Deserialize, Debug)]
 struct FormData {
-    message: String,
+    action: Action,
+    amount: u64,
+    to_address: String,
 }
 
 abigen!(
-    TheBlockchainMessenger,
+    SmartMoney,
     r#"[
-        function updateTheMessage(string)
-        function changeCounter()(uint)
-        function theMessage()(string)
+        function deposit()()
+        function getContractBalance()(uint)
+        function withdrawAll()
+        function withdrawToAddress(address)
+        function balanceReceived()(uint)
     ]"#
 );
 
-const CONTRACT_NAME: &str = "TheBlockchainMessenger";
-const LAB_PATH: &str = "lab/the_blockchain_messenger";
-const LAB_BASEURL: &str = "/lab/the-blockchain-messenger";
-const CONTRACT_ADDRESS_ENVVAR: &str = "CONTRACT_ADDRESS_THEBLOCKCHAINMESSENGER";
+const CONTRACT_NAME: &str = "SmartMoney";
+const LAB_PATH: &str = "lab/smart_money";
+const LAB_BASEURL: &str = "/lab/smart-money";
+const CONTRACT_ADDRESS_ENVVAR: &str = "CONTRACT_ADDRESS_SMARTMONEY";
 
 pub fn setup_handlers(cfg: &mut web::ServiceConfig) {
     cfg.service(web::resource(LAB_BASEURL).route(web::get().to(load_template_handler)))
@@ -72,6 +83,20 @@ async fn load_template_handler(app_state: web::Data<AppState>) -> impl Responder
 async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
     let result_path = format!("{}/result.html", LAB_PATH);
 
+    let mut balances = vec![(Address::zero(), String::from("0")); app_state.accounts.len()];
+    for (i, adr) in app_state.accounts.iter().enumerate() {
+        let balance = match app_state
+            .eth_client
+            .get_client()
+            .get_balance(*adr, None)
+            .await
+        {
+            Ok(balance) => balance.to_string(),
+            Err(e) => return helper::ui_alert(&e.to_string()),
+        };
+        balances[i] = (*adr, balance);
+    }
+
     let lock = match app_state.contracts.read() {
         Ok(lock) => lock,
         Err(e) => return helper::ui_alert(&e.to_string()),
@@ -109,17 +134,18 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
     context.insert("transaction", &format!("{:#x}", U256::from(tx.as_bytes())));
     context.insert("gas_used", &block.gas_used.as_u64());
 
-    let contract = TheBlockchainMessenger::new(contract.address(), contract.client());
-    let counter = match contract.change_counter().call().await {
+    let contract = SmartMoney::new(contract.address(), contract.client());
+    let balance_received = match contract.balance_received().call().await {
         Ok(counter) => counter,
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
-    let msg = match contract.the_message().call().await {
+    let contract_balance = match contract.get_contract_balance().call().await {
         Ok(msg) => msg,
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
-    context.insert("message", &msg);
-    context.insert("counter", &counter.as_u64());
+    context.insert("balance_received", &balance_received.as_u64());
+    context.insert("contract_balance", &contract_balance.as_u64());
+    context.insert("account_balances", &balances);
     let rendered = match app_state.tmpl.render(&result_path, &context) {
         Ok(rendered) => rendered,
         Err(e) => {
@@ -209,8 +235,18 @@ async fn submit_handler(
         None => return helper::ui_alert(&format!("contract {} not deployed", CONTRACT_NAME)),
     };
 
-    let contract = TheBlockchainMessenger::new(contract.address(), contract.client());
-    let call = contract.update_the_message(form.message.clone());
+    let contract = SmartMoney::new(contract.address(), contract.client());
+    let call = match form.action {
+        Action::Deposit => contract.deposit().value(form.amount),
+        Action::WithdrawAll => contract.withdraw_all(),
+        Action::WithdrawToAddress => {
+            let adr = match form.to_address.parse::<Address>() {
+                Ok(adr) => adr,
+                Err(e) => return helper::ui_alert(&e.to_string()),
+            };
+            contract.withdraw_to_address(adr)
+        }
+    };
     let pending_tx = match call.send().await {
         Ok(receipt) => receipt,
         Err(e) => return helper::ui_alert(&e.to_string()),

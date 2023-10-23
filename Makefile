@@ -1,3 +1,5 @@
+export ETH_RPC_URL=${ENDPOINT}
+
 install-foundry:
 	curl -L https://foundry.paradigm.xyz | bash
 
@@ -59,23 +61,53 @@ TX_HASH=0x0
 get-tx:
 	cast tx $(TX_HASH)
 
-deploy-lab1:
-	forge create --rpc-url $(ENDPOINT) src/lab/the_blockchain_messenger/TheBlockchainMessenger.sol:TheBlockchainMessenger
-
-send-lab1:
-	cast send $(CONTRACT_ADDRESS_THEBLOCKCHAINMESSENGER) "updateTheMessage(string)" "$(MSG)"
-
-get-lab1-data:
-	@echo 'changeCounter:'
-	@cast call $(CONTRACT_ADDRESS_THEBLOCKCHAINMESSENGER) "changeCounter()(uint)"
-	@echo 'theMessage:'
-	@cast call $(CONTRACT_ADDRESS_THEBLOCKCHAINMESSENGER) "theMessage()(string)"
-
-get-lab1-data-at-block:
-	@echo 'changeCounter:'
-	@cast call $(CONTRACT_ADDRESS_THEBLOCKCHAINMESSENGER) "changeCounter()(uint)" --block=$(BLOCK_NR)
-	@echo 'theMessage:'
-	@cast call $(CONTRACT_ADDRESS_THEBLOCKCHAINMESSENGER) "theMessage()(string)" --block=$(BLOCK_NR)
-
 get-balance:
 	cast balance $(ACCOUNT)
+
+# lab1: the_blockchain_messenger
+
+# export CONTRACT_ADDRESS_THEBLOCKCHAINMESSENGER=$(make lab1-deploy)
+lab1-deploy:
+	@forge create --private-key=$(PRIVATE_KEY) src/lab/the_blockchain_messenger/TheBlockchainMessenger.sol:TheBlockchainMessenger | grep "Deployed to:" | cut -d' ' -f3
+
+lab1-updateTheMessage:
+	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_THEBLOCKCHAINMESSENGER) "updateTheMessage(string)" "$(MSG)"
+
+lab1-get-data:
+	@echo 'changeCounter:'
+	@cast call --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_THEBLOCKCHAINMESSENGER) "changeCounter()(uint)"
+	@echo 'theMessage:'
+	@cast call --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_THEBLOCKCHAINMESSENGER) "theMessage()(string)"
+
+lab1-get-data-at-block:
+	@echo 'changeCounter:'
+	@cast call --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_THEBLOCKCHAINMESSENGER) "changeCounter()(uint)" --block=$(BLOCK_NR)
+	@echo 'theMessage:'
+	@cast call --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_THEBLOCKCHAINMESSENGER) "theMessage()(string)" --block=$(BLOCK_NR)
+
+
+# lab2: smart_money
+
+# export CONTRACT_ADDRESS_SMARTMONEY=$(make lab2-deploy)
+lab2-deploy:
+	@forge create --private-key=$(PRIVATE_KEY) src/lab/smart_money/SmartMoney.sol:SmartMoney | grep "Deployed to:" | cut -d' ' -f3
+
+lab2-deposit:
+	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SMARTMONEY) "deposit()" --value="$(VAL)"
+
+lab2-getContractBalance:
+	@cast call $(CONTRACT_ADDRESS_SMARTMONEY) "getContractBalance()(uint)"
+
+lab2-withdrawAll:
+	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SMARTMONEY) "withdrawAll()"
+
+lab2-withdrawToAddress:
+	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SMARTMONEY) "withdrawToAddress(address)" "$(TO)"
+
+lab2-get-data:
+	@echo 'balanceReceived:'
+	@cast call $(CONTRACT_ADDRESS_SMARTMONEY) "balanceReceived()(uint)"
+
+lab2-get-data-at-block:
+	@echo 'balanceReceived:'
+	@cast call $(CONTRACT_ADDRESS_SMARTMONEY) "balanceReceived()(uint)" --block=$(BLOCK_NR)
