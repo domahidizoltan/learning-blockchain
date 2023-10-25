@@ -1,0 +1,28 @@
+
+<div class="divider"></div>
+
+<div class="grid grid-cols-2 gap-4">
+    <div class="contentCard w-auto"
+        id="lastBlockDetails"
+        hx-get="/last-block-details" 
+        hx-trigger="load, loadLastBlockDetails from:#formContent" 
+        hx-target="#lastBlockDetails"
+        hx-target-*=".errors"
+        hx-swap="innerHTML"
+    >
+        <div class="htmx-indicator"><span></span></div>
+        <div class="errors"></div>
+    </div>
+
+    <div class="contentCard w-auto"
+        id="accountBalances"
+        hx-get="/account-balances" 
+        hx-trigger="load, loadAccountBalances from:#formContent" 
+        hx-target="#accountBalances"
+        hx-target-*=".errors"
+        hx-swap="innerHTML"
+    >
+        <div class="htmx-indicator"><span></span></div>
+        <div class="errors"></div>
+    </div>
+</div>
