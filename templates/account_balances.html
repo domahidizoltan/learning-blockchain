@@ -4,7 +4,7 @@
       <tbody>
       {% for item in account_balances %}
         <tr>
-          <th>{{item.0}}</th>
+          <th class="copyable" data-tip="copy" onclick="copyToClipboard(this)">{{item.0}}</th>
           <td>{{item.1}}</td>
         </tr>
       {% endfor %}

@@ -12,6 +12,15 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@3.7.3/dist/full.css" rel="stylesheet" type="text/css" />
     <link href="static/output.css" rel="stylesheet">
+    <script lang="javascript">
+        function copyToClipboard(it) {
+            navigator.clipboard.writeText(it.innerHTML);
+            it.classList.add("clicked");
+            setTimeout(() => {
+                it.classList.remove("clicked");
+            }, 200);
+        }
+    </script>
 
 </head>
 

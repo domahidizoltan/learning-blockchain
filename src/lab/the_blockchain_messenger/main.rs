@@ -93,7 +93,7 @@ async fn submit_handler(
 ) -> impl Responder {
     app_state
         .debug_service
-        .send_debug_event(&format!("update request received: {:?}", form))
+        .send_debug_event(&format!("<b>[{CONTRACT_NAME}]</b> transaction requested: {form:?}"))
         .await;
 
     let lock = match app_state.contracts.read() {
@@ -116,7 +116,7 @@ async fn submit_handler(
         Ok(receipt) => {
             app_state
                 .debug_service
-                .send_debug_event(&format!("receipt: {:?}", receipt))
+                .send_debug_event(&format!("<b>[{CONTRACT_NAME}]</b> receipt: {receipt:?}"))
                 .await;
             HttpResponse::NoContent()
                 .append_header(("HX-Trigger", "loadResult,loadLastBlockDetails,loadAccountBalances"))

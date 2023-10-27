@@ -60,4 +60,13 @@
     #debug p {
         @apply font-mono pb-3
     }
+
+}
+
+.copyable {
+    @apply cursor-copy tooltip tooltip-primary
+}
+
+.clicked {
+    @apply bg-white transition-colors
 }

@@ -28,7 +28,7 @@ start-testnet:
 	anvil
 
 watch-tailwind:
-	rm templates/static/output.css
+	rm templates/static/output.css || true
 	npx tailwindcss -i ./templates/input.css -o ./templates/static/output.css --watch --minify
 
 check:

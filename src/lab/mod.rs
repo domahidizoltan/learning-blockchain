@@ -53,9 +53,7 @@ async fn deploy(app_state: web::Data<AppState>, contract_name: &str, contract_ad
                 app_state
                     .debug_service
                     .send_debug_event(&format!(
-                        "recreating contract {}.sol from address {}",
-                        contract_name, adr
-                    ))
+                        "<b>[{contract_name}]</b> recreating contract {contract_name}.sol from address {adr}"))
                     .await;
                 match app_state
                     .eth_client
@@ -69,17 +67,15 @@ async fn deploy(app_state: web::Data<AppState>, contract_name: &str, contract_ad
             Err(_) => {
                 app_state
                     .debug_service
-                    .send_debug_event(&format!("deploying contract {}.sol ...", contract_name))
+                    .send_debug_event(&format!("<b>[{contract_name}]</b> deploying contract {contract_name}.sol ..."))
                     .await;
                 match app_state.eth_client.deploy_contract(contract_name).await {
                     Ok(contract) => {
+                        let adr = contract.address();
                         app_state
                             .debug_service
                             .send_debug_event(&format!(
-                                "{}.sol deployed to address {:#x}",
-                                contract_name,
-                                contract.address()
-                            ))
+                                "<b>[{contract_name}]</b> {contract_name}.sol deployed to address {adr:#x}"))
                             .await;
                         contract
                     }
