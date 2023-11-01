@@ -77,11 +77,11 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
 
     let contract = SmartMoney::new(contract.address(), contract.client());
     let balance_received = match contract.balance_received().call().await {
-        Ok(counter) => counter,
+        Ok(balance) => balance,
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
     let contract_balance = match contract.get_contract_balance().call().await {
-        Ok(msg) => msg,
+        Ok(balance) => balance,
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
     context.insert("balance_received", &balance_received.as_u64());

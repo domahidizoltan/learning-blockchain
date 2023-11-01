@@ -20,7 +20,8 @@ install-web3cli:
 	curl -LSs https://raw.githubusercontent.com/gochain/web3/master/install.sh | sh
 
 remap:
-	forge remappings
+# forge install OpenZeppelin/openzeppelin-contracts
+	forge remappings > remappings.txt
 
 prepare-env: install-foundry install-tailwind install-solidity install-direnv remap
 
@@ -93,7 +94,7 @@ lab2-deploy:
 	@forge create --private-key=$(PRIVATE_KEY) src/lab/smart_money/SmartMoney.sol:SmartMoney | grep "Deployed to:" | cut -d' ' -f3
 
 lab2-deposit:
-	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SMARTMONEY) "deposit()" --value="$(VAL)"
+	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SMARTMONEY) "deposit()" --value="$(AMOUNT)"
 
 lab2-getContractBalance:
 	@cast call $(CONTRACT_ADDRESS_SMARTMONEY) "getContractBalance()(uint)"
@@ -102,7 +103,7 @@ lab2-withdrawAll:
 	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SMARTMONEY) "withdrawAll()"
 
 lab2-withdrawToAddress:
-	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SMARTMONEY) "withdrawToAddress(address)" "$(TO)"
+	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SMARTMONEY) "withdrawToAddress(address)" "$(TO_ACC)"
 
 lab2-get-data:
 	@echo 'balanceReceived:'
@@ -111,3 +112,50 @@ lab2-get-data:
 lab2-get-data-at-block:
 	@echo 'balanceReceived:'
 	@cast call $(CONTRACT_ADDRESS_SMARTMONEY) "balanceReceived()(uint)" --block=$(BLOCK_NR)
+
+
+# lab3: shared_wallet
+
+# export CONTRACT_ADDRESS_SHAREDWALLET=$(make lab3-deploy)
+lab3-deploy:
+	@forge create --private-key=$(PRIVATE_KEY) src/lab/shared_wallet/SharedWallet.sol:SharedWallet | grep "Deployed to:" | cut -d' ' -f3
+
+lab3-proposeNewOwner:
+	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SHAREDWALLET) "proposeNewOwner(address)" "$(ACC)"
+
+lab3-setAllowance:
+	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SHAREDWALLET) "setAllowance(address, uint)" "$(ACC)" "$(AMOUNT)"
+
+lab3-denySending:
+	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SHAREDWALLET) "denySending(address)" "$(ACC)"
+
+lab3-transfer:
+	@cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SHAREDWALLET) "transfer(address, uint, bytes)(bytes)" "$(ACC)" "$(AMOUNT)" "$(PAYLOAD)"
+
+lab3-get-data:
+	@echo 'owner:'
+	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "owner()(address)"
+	@echo 'allowance:'
+	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getAllowanceMapAsString()(string)"
+	@echo 'isAllowedToSend:'
+	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getIsAllowedToSendMapAsString()(string)"
+	@echo 'guardian:'
+	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getGuardianMapAsString()(string)"
+	@echo 'nextOwner:'
+	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "nextOwner()(address)"
+	@echo 'guardiansResetCount:'
+	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "guardiansResetCount()(uint)"
+
+lab3-get-data-at-block:
+	@echo 'owner:'
+	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "owner()(address)" --block=$(BLOCK_NR)
+	@echo 'allowance:'
+	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getAllowanceMapAsString()(string)" --block=$(BLOCK_NR)
+	@echo 'isAllowedToSend:'
+	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getIsAllowedToSendMapAsString()(string)" --block=$(BLOCK_NR)
+	@echo 'guardian:'
+	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getGuardianMapAsString()(string)" --block=$(BLOCK_NR)
+	@echo 'nextOwner:'
+	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "nextOwner()(address)" --block=$(BLOCK_NR)
+	@echo 'guardiansResetCount:'
+	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "guardiansResetCount()(uint)" --block=$(BLOCK_NR)

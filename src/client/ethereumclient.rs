@@ -10,9 +10,9 @@ use ethers::{
     types::Address,
 };
 use ethers_contract::Contract;
-use ethers_solc::{CompilerOutput, Solc};
+use ethers_solc::{CompilerOutput, Solc, Project, ProjectPathsConfig, CompilerInput, remappings::Remapping, artifacts::Compiler};
 use k256::Secp256k1;
-use std::{path::Path, sync::Arc};
+use std::{path::{Path, PathBuf}, sync::Arc};
 
 const PRIVATE_KEY: &str = "PRIVATE_KEY";
 const ENDPOINT: &str = "ENDPOINT";
@@ -32,6 +32,9 @@ pub enum EthereumClientError {
 
     #[error("could not compile contracts")]
     ContractCompilationError(#[source] Box<dyn std::error::Error>),
+
+    #[error("could not compile contracts")]
+    ContractCompilationInternalError(String),
 
     #[error("could not parse address")]
     AddressParseError(#[source] Box<dyn std::error::Error>),
@@ -97,9 +100,22 @@ impl EthereumClient {
             .map(|path| Path::new(&path).canonicalize())?
             .map_err(|_| EthereumClientError::ContractSourceNotFound())?;
 
-        Solc::default()
-            .compile_source(source)
-            .map_err(|e| EthereumClientError::ContractCompilationError(e.into()))
+        let remappings = Remapping::find_many(Path::new("."));
+        let input = CompilerInput::new(PathBuf::from(source))
+            .map_err(|e| EthereumClientError::ContractCompilationError(e.into()))?;
+        let remapped_input = input[0].clone().with_remappings(remappings);
+
+        match Solc::default().compile_exact(&remapped_input) {
+            Ok(output) => {
+                if output.has_error() {
+                    let s: Vec<String> = output.errors.iter().map(|e| e.message.clone()).collect();                           
+                    return Err(EthereumClientError::ContractCompilationInternalError(s.join("\n")))
+                } else {
+                    Ok(output)
+                }
+            }
+            Err(e) => return Err(EthereumClientError::ContractCompilationError(e.into()))
+        }
     }
 
     pub fn get_client(&self) -> std::sync::Arc<SignerMiddleware<Provider<Http>, LocalWallet>> {
