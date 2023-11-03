@@ -2,8 +2,6 @@
 
 pragma solidity ^0.8.15;
 
-// import "forge-std/console.sol";
-
 contract TheBlockchainMessenger {
 
     uint public changeCounter;
@@ -15,10 +13,6 @@ contract TheBlockchainMessenger {
     constructor() {
         owner = msg.sender;
     }
-
-    // function ttt() public view {
-    //     console.log("Hello from SharedWallet");
-    // }
 
     function updateTheMessage(string memory _newMessage) public {
         if(msg.sender == owner) {

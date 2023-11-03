@@ -120,6 +120,9 @@ lab2-get-data-at-block:
 lab3-deploy:
 	@forge create --private-key=$(PRIVATE_KEY) src/lab/shared_wallet/SharedWallet.sol:SharedWallet | grep "Deployed to:" | cut -d' ' -f3
 
+lab3-fund-contract:
+	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SHAREDWALLET) --value="$(AMOUNT)"
+
 lab3-proposeNewOwner:
 	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SHAREDWALLET) "proposeNewOwner(address)" "$(ACC)"
 
@@ -130,9 +133,11 @@ lab3-denySending:
 	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SHAREDWALLET) "denySending(address)" "$(ACC)"
 
 lab3-transfer:
-	@cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SHAREDWALLET) "transfer(address, uint, bytes)(bytes)" "$(ACC)" "$(AMOUNT)" "$(PAYLOAD)"
+	@cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_SHAREDWALLET) "transfer(address, uint, bytes)(bytes)" "$(ACC)" "$(AMOUNT)" "$(shell echo $(PAYLOAD)|xxd -p)"
 
 lab3-get-data:
+	@echo 'contractBalance:'
+	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getContractBalance()(uint)"
 	@echo 'owner:'
 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "owner()(address)"
 	@echo 'allowance:'
@@ -147,6 +152,8 @@ lab3-get-data:
 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "guardiansResetCount()(uint)"
 
 lab3-get-data-at-block:
+	@echo 'contractBalance:'
+	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getContractBalance()(uint)" --block=$(BLOCK_NR)
 	@echo 'owner:'
 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "owner()(address)" --block=$(BLOCK_NR)
 	@echo 'allowance:'

@@ -3,7 +3,7 @@
 pragma solidity ^0.8.15;
 
 import "forge-std/console.sol";
-import "openzeppelin-contracts/contracts/utils/Strings.sol";
+import "openzeppelin-contracts/utils/Strings.sol";
 
 contract SharedWallet {
 
@@ -69,7 +69,11 @@ contract SharedWallet {
 
     //------------------ Helper functions ------------------//
 
-        function addAllowanceKey(address _from) private {
+    function getContractBalance() public view returns (uint) {
+        return address(this).balance;
+    }
+
+    function addAllowanceKey(address _from) private {
         for (uint256 index = 0; index < allowanceKeys.length; index++)
         {
             if (allowanceKeys[index] == _from) {
@@ -79,7 +83,7 @@ contract SharedWallet {
         allowanceKeys.push(_from);
     }
 
-    function getAllowanceMapAsString() public returns (string memory) {
+    function getAllowanceMapAsString() public view returns (string memory) {
         string memory allowanceMapAsString = "";
         for (uint256 index = 0; index < allowanceKeys.length; index++)
         {
@@ -100,7 +104,7 @@ contract SharedWallet {
         guardianKeys.push(_from);
     }
 
-    function getIsAllowedToSendMapAsString() public returns (string memory) {
+    function getIsAllowedToSendMapAsString() public view returns (string memory) {
         string memory mapAsString = "";
         for (uint256 index = 0; index < allowanceKeys.length; index++)
         {
@@ -112,7 +116,7 @@ contract SharedWallet {
         return mapAsString;
     }
 
-    function getGuardianMapAsString() public returns (string memory) {
+    function getGuardianMapAsString() public view returns (string memory) {
         string memory mapAsString = "";
         for (uint256 index = 0; index < guardianKeys.length; index++)
         {

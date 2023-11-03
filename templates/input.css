@@ -16,6 +16,9 @@
     .contentCard h2 {
         @apply card-title mb-5
     }
+    form label {
+        @apply flex justify-normal mt-2
+    }
     form input {
         @apply input input-bordered input-primary w-full max-w-xs required:border-red-500
     }
@@ -59,6 +62,13 @@
     }
     #debug p {
         @apply font-mono pb-3
+    }
+
+    #actionResult label {
+        @apply font-bold
+    }
+    #actionResult div {
+        @apply pl-1 text-sm
     }
 
 }

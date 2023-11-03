@@ -4,24 +4,33 @@ use actix_web::{
     HttpResponse, Responder,
 };
 use ethers::{
+    prelude::SignerMiddleware,
+    prelude::Wallet,
     contract::abigen,
-    types::Address,
+    types::{Address, U256, Bytes, TransactionRequest, TransactionReceipt, H160},
 };
+use ethers_providers::{Middleware, Http};
+use k256::Secp256k1;
 use serde::Deserialize;
 use tera::Context;
 
-// #[derive(Deserialize, Debug)]
-// enum Action {
-//     Deposit,
-//     WithdrawAll,
-//     WithdrawToAddress,
-// }
+type SharedWalletType = SharedWallet<SignerMiddleware<ethers_providers::Provider<Http>, Wallet<ecdsa::SigningKey<Secp256k1>>>>;
+
+
+#[derive(Deserialize, Debug)]
+enum Action {
+    FundContract,
+    SetAllowance,
+    DenySending,
+    TransferToAddress,
+}
 
 #[derive(Deserialize, Debug)]
 struct FormData {
-    // action: Action,
-    // amount: u64,
-    // to_address: String,
+    action: Action,
+    amount: Option<u64>,
+    address: Option<String>,
+    message: Option<String>,
 }
 
 abigen!(
@@ -32,6 +41,7 @@ abigen!(
         function denySending(address)
         function transfer(address, uint, bytes)(bytes) 
 
+        function getContractBalance()(uint)
         function owner()(address)
         function getAllowanceMapAsString()(string)
         function getIsAllowedToSendMapAsString()(string)
@@ -82,11 +92,18 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
     context.insert("contract_address", &contract_address);
 
     let contract = SharedWallet::new(contract.address(), contract.client());
+
+    let client = app_state.eth_client.get_client();
+    let contract_balance = match &client.get_balance(contract.address(), None).await {
+        Ok(balance) => balance.to_string(),
+        Err(e) => return helper::ui_alert(&e.to_string()),
+    };
+    context.insert("contract_balance", &contract_balance);
+
     let owner = match contract.owner().call().await {
         Ok(owner) => format!("{:#x}", owner),
         Err(e) => return helper::ui_alert(&e.to_string()),
-    };
-    
+    };   
     context.insert("owner", &owner);
 
     let allowance = match contract.get_allowance_map_as_string().call().await {
@@ -153,35 +170,102 @@ async fn submit_handler(
     };
 
     let contract = SharedWallet::new(contract.address(), contract.client());
-    // let call = match form.action {
-    //     Action::Deposit => contract.deposit().value(form.amount),
-    //     Action::WithdrawAll => contract.withdraw_all(),
-    //     Action::WithdrawToAddress => {
-    //         let adr = match form.to_address.parse::<Address>() {
-    //             Ok(adr) => adr,
-    //             Err(e) => return helper::ui_alert(&e.to_string()),
-    //         };
-    //         contract.withdraw_to_address(adr)
-    //     }
-    // };
-    // let pending_tx = match call.send().await {
-    //     Ok(receipt) => receipt,
-    //     Err(e) => return helper::ui_alert(&e.to_string()),
-    // };
 
-    // match pending_tx.await {
-    //     Ok(receipt) => {
-    //         app_state
-    //             .debug_service
-    //             .send_debug_event(&format!("<b>[{CONTRACT_NAME}]</b> receipt: {receipt:?}"))
-    //             .await;
-    //         HttpResponse::NoContent()
-    //             .append_header(("HX-Trigger", "loadResult, loadLastBlockDetails, loadAccountBalances"))
-    //             .finish()
-    //     }
-    //     Err(e) => helper::ui_alert(&e.to_string()),
-    // }
-    return HttpResponse::NoContent()
-        .append_header(("HX-Trigger", "loadResult, loadLastBlockDetails, loadAccountBalances"))
-        .finish()
+    let adr = match form.address.clone().unwrap_or("0".to_string()).parse::<Address>() {
+        Ok(adr) => adr,
+        Err(e) => return helper::ui_alert(&e.to_string()),
+    };
+    let amount = form.amount.clone().unwrap_or(0);
+    let message = form.message.clone().unwrap_or("".to_string());
+
+    let tx_receipt: Result<Option<TransactionReceipt>, String> = match form.action {
+        Action::FundContract => fund_contract( contract.address(), amount, &app_state).await,
+        Action::SetAllowance => set_allowance(adr, amount, contract).await,
+        Action::DenySending => deny_sending(adr, contract).await,
+        Action::TransferToAddress => transfer_to_address(adr, amount, message.as_str(), contract).await,
+    };
+
+    let receipt = match tx_receipt {
+        Ok(receipt) => receipt,
+        Err(e) => return helper::ui_alert(e.as_str()),
+    };
+
+    match receipt {
+        Some(receipt) => {
+            app_state
+                .debug_service
+                .send_debug_event(&format!("<b>[{CONTRACT_NAME}]</b> receipt: {receipt:?}"))
+                .await;
+            trigger_reload()
+        }
+        None => helper::ui_alert("No receipt for transaction"),
+    }
+}
+
+fn trigger_reload() -> HttpResponse {
+    HttpResponse::NoContent().append_header(("HX-Trigger", "loadResult, loadLastBlockDetails, loadAccountBalances")).finish()
+}
+
+async fn fund_contract(
+    contract_address: H160,
+    amount: u64,
+    app_state: &web::Data<AppState>,
+) -> Result<Option<TransactionReceipt>, String> {
+    let tx_req = TransactionRequest::new()
+        .to(contract_address)
+        .value(U256::from(amount));
+    let client = app_state.eth_client.get_client();
+    let pending_tx_res = client.send_transaction(tx_req, None).await;
+
+    match pending_tx_res {
+        Ok(tx) => match tx.await {
+            Ok(receipt) => Ok(receipt),
+            Err(e) => Err(e.to_string()),
+        },
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+async fn set_allowance(
+    address: H160,
+    amount: u64,
+    contract: SharedWalletType,
+) -> Result<Option<TransactionReceipt>, String> {
+    match contract.set_allowance(address, U256::from(amount)).send().await {
+        Ok(receipt) => match receipt.await {
+            Ok(receipt) => Ok(receipt),
+            Err(e) => Err(e.to_string()),
+        },
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+async fn deny_sending(
+    address: H160,
+    contract: SharedWalletType,
+) -> Result<Option<TransactionReceipt>, String> {
+    match contract.deny_sending(address).send().await {
+        Ok(receipt) => match receipt.await {
+            Ok(receipt) => Ok(receipt),
+            Err(e) => Err(e.to_string()),
+        },
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+async fn transfer_to_address(
+    address: H160,
+    amount: u64,
+    message: &str,
+    contract: SharedWalletType,
+) -> Result<Option<TransactionReceipt>, String> {
+    match contract
+        .transfer(address, U256::from(amount), Bytes::from_static("test".as_bytes()))
+        .send().await {
+            Ok(receipt) => match receipt.await {
+                Ok(receipt) => Ok(receipt),
+                Err(e) => Err(e.to_string()),
+            },
+            Err(e) => Err(e.to_string()),
+    }
 }

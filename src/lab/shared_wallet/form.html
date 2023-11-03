@@ -1,44 +1,91 @@
-<form hx-post="/lab/smart-money/form" hx-target-*=".errors" hx-on::after-request="this.reset()">
-    <input type="hidden" name="action" id="formAction">
-    <h2>Deposit</h2>
+<form hx-post="/lab/shared-wallet/form" hx-target-*=".errors" hx-on::after-request="this.reset()">
+    <input type="hidden" name="action" value="FundContract">
+    <h2>Fund contract</h2>
     <label>Amount:</label>
     <div class="grid grid-cols-3 gap-4">
         <div class="col-span-2">
             <input type="number" name="amount" value="100"/>
         </div>
         <div class="p-0">
-            <button type="submit" hx-on="mousedown: document.getElementById('formAction').value='Deposit'">Deposit</button>
+            <button type="submit">Fund</button>
         </div>
     </div>
-    <div class="divider"></div>
-    
-    <h2>Withdraw all</h2>
+</form>
+<div class="divider"></div>
+
+<form hx-post="/lab/shared-wallet/form" hx-target-*=".errors" hx-on::after-request="this.reset()">
+    <input type="hidden" name="action" value="SetAllowance">
+    <h2>Set allowance</h2>
     <label>Address:</label>
     <div class="grid grid-cols-3 gap-4">
         <div class="col-span-2">
-            <input type="text" value="{{current_address}}" disabled/>
+            <select name="address">
+            {% for adr in other_account_addresses %}
+                <option value="{{adr}}">{{adr}}</option>
+            {% endfor %}
+            </select>
+        </div>
+    </div>
+    <label>Amount:</label>
+    <div class="grid grid-cols-3 gap-4">
+        <div class="col-span-2">
+            <input type="number" name="amount" value="100"/>
         </div>
         <div class="p-0">
-            <button type="submit" hx-on="mousedown: document.getElementById('formAction').value='WithdrawAll'">Withdraw</button>
+            <button type="submit">Set</button>
         </div>
     </div>
-    <div class="divider"></div>
-    
-    <h2>Withdraw to address</h2>
+</form>
+<div class="divider"></div>
+
+<form hx-post="/lab/shared-wallet/form" hx-target-*=".errors" hx-on::after-request="this.reset()">
+    <input type="hidden" name="action" value="DenySending">
+    <h2>Deny sending</h2>
     <label>Address:</label>
     <div class="grid grid-cols-3 gap-4">
         <div class="col-span-2">
-            <select name="to_address">
+            <select name="address">
             {% for adr in other_account_addresses %}
                 <option value="{{adr}}">{{adr}}</option>
             {% endfor %}
             </select>
         </div>
         <div class="p-0">
-            <button type="submit" hx-on="mousedown: document.getElementById('formAction').value='WithdrawToAddress'">Withdraw</button>
+            <button type="submit">Deny</button>
         </div>
     </div>
-    
-    <div class="htmx-indicator"><span></span></div>
-    <div class="errors"></div>
 </form>
+<div class="divider"></div>
+
+<form hx-post="/lab/shared-wallet/form" hx-target-*=".errors" hx-on::after-request="this.reset()">
+    <input type="hidden" name="action" value="TransferToAddress">
+    <h2>Transfer to address</h2>
+    <label>Address:</label>
+    <div class="grid grid-cols-3 gap-4">
+        <div class="col-span-2">
+            <select name="address">
+            {% for adr in other_account_addresses %}
+                <option value="{{adr}}">{{adr}}</option>
+            {% endfor %}
+            </select>
+        </div>
+    </div>
+    <label>Amount:</label>
+    <div class="grid grid-cols-3 gap-4">
+        <div class="col-span-2">
+            <input type="number" name="amount" value="100"/>
+        </div>
+    </div>
+    <label>Message:</label>
+    <div class="grid grid-cols-3 gap-4">
+        <div class="col-span-2">
+            <input name="message"/>
+        </div>
+        <div class="p-0">
+            <button type="submit">Transfer</button>
+        </div>
+    </div>
+</form>
+
+<div class="htmx-indicator"><span></span></div>
+<div class="errors"></div>
