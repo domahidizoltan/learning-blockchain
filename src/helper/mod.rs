@@ -18,10 +18,7 @@ pub fn get_all_account_addresses() -> Result<Vec<Address>, AppError> {
         .collect::<Vec<String>>();
 
     let mut all_parsed = vec![Address::zero(); other_addresses.len() + 1];
-    all_parsed[0] = match current.parse::<Address>() {
-        Ok(addr) => addr,
-        Err(e) => return Err(AppError::AddressParseError(e.into())),
-    };
+    all_parsed[0] = parse_address(&current)?;
     for (i, addr) in other_addresses.iter().enumerate() {
         all_parsed[i + 1] = match addr.parse::<Address>() {
             Ok(addr) => addr,
@@ -37,4 +34,9 @@ pub fn ui_alert(msg: &str) -> HttpResponse {
         "<span class=\"alert alert-error\">⚠ {}</span>",
         msg
     ))
+}
+
+pub fn parse_address(addr: &str) -> Result<Address, AppError> {
+    addr.parse::<Address>()
+        .map_err(|e| AppError::AddressParseError(e.into()))
 }

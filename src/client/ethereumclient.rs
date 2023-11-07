@@ -1,4 +1,4 @@
-use crate::helper::get_env_var;
+use crate::helper::{self, get_env_var};
 
 use ethers::{
     contract::ContractFactory,
@@ -7,12 +7,14 @@ use ethers::{
     prelude::Wallet,
     providers::{Http, Provider},
     signers::{LocalWallet, Signer},
-    types::Address,
 };
 use ethers_contract::Contract;
-use ethers_solc::{CompilerOutput, Solc, Project, ProjectPathsConfig, CompilerInput, remappings::Remapping, artifacts::Compiler};
+use ethers_solc::{remappings::Remapping, CompilerInput, CompilerOutput, Solc};
 use k256::Secp256k1;
-use std::{path::{Path, PathBuf}, sync::Arc};
+use std::{
+    path::{Path, PathBuf},
+    sync::Arc,
+};
 
 const PRIVATE_KEY: &str = "PRIVATE_KEY";
 const ENDPOINT: &str = "ENDPOINT";
@@ -108,13 +110,15 @@ impl EthereumClient {
         match Solc::default().compile_exact(&remapped_input) {
             Ok(output) => {
                 if output.has_error() {
-                    let s: Vec<String> = output.errors.iter().map(|e| e.message.clone()).collect();                           
-                    return Err(EthereumClientError::ContractCompilationInternalError(s.join("\n")))
+                    let s: Vec<String> = output.errors.iter().map(|e| e.message.clone()).collect();
+                    return Err(EthereumClientError::ContractCompilationInternalError(
+                        s.join("\n"),
+                    ));
                 } else {
                     Ok(output)
                 }
             }
-            Err(e) => return Err(EthereumClientError::ContractCompilationError(e.into()))
+            Err(e) => return Err(EthereumClientError::ContractCompilationError(e.into())),
         }
     }
 
@@ -127,10 +131,7 @@ impl EthereumClient {
         contract_name: &str,
         contract_address: &str,
     ) -> Result<ContractInstanceType, EthereumClientError> {
-        let address = contract_address
-            .parse::<Address>()
-            .map_err(|e| EthereumClientError::AddressParseError(e.into()))?;
-
+        let address = helper::parse_address(contract_address)?;
         let (abi, _bytecode, _runtime_bytecode) = match self.contracts.find(contract_name) {
             Some(compiled) => compiled.into_parts_or_default(),
             None => {

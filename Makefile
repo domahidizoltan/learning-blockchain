@@ -56,14 +56,17 @@ web3-get-balance:
 
 BLOCK_NR=0
 get-block:
-	cast block $(BLOCK_NR)
+	@cast block $(BLOCK_NR)
 
 TX_HASH=0x0
 get-tx:
-	cast tx $(TX_HASH)
+	@cast tx $(TX_HASH)
 
 get-balance:
-	cast balance $(ACCOUNT)
+	@cast balance $(ACCOUNT)
+
+decode:
+	@cast 4byte-decode $(HEX)
 
 # lab1: the_blockchain_messenger
 

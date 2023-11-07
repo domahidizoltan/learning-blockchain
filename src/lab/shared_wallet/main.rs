@@ -1,21 +1,29 @@
-use crate::{app::model::State as AppState, helper, lab::{load_template, deploy}};
+use crate::{
+    app::model::State as AppState,
+    helper,
+    lab::{deploy, load_template},
+};
 use actix_web::{
     web::{self},
     HttpResponse, Responder,
 };
 use ethers::{
+    abi::{decode as abi_decode, ParamType},
+    contract::abigen,
     prelude::SignerMiddleware,
     prelude::Wallet,
-    contract::abigen,
-    types::{Address, U256, Bytes, TransactionRequest, TransactionReceipt, H160},
+    types::{Bytes, TransactionReceipt, TransactionRequest, H160, U256},
+    utils::hex::decode as hex_decode,
 };
-use ethers_providers::{Middleware, Http};
+use ethers_contract::ContractError;
+use ethers_providers::{Http, Middleware};
 use k256::Secp256k1;
 use serde::Deserialize;
 use tera::Context;
 
-type SharedWalletType = SharedWallet<SignerMiddleware<ethers_providers::Provider<Http>, Wallet<ecdsa::SigningKey<Secp256k1>>>>;
-
+type SharedWalletType = SharedWallet<
+    SignerMiddleware<ethers_providers::Provider<Http>, Wallet<ecdsa::SigningKey<Secp256k1>>>,
+>;
 
 #[derive(Deserialize, Debug)]
 enum Action {
@@ -55,6 +63,7 @@ const CONTRACT_NAME: &str = "SharedWallet";
 const LAB_PATH: &str = "lab/shared_wallet";
 const LAB_BASEURL: &str = "/lab/shared-wallet";
 const CONTRACT_ADDRESS_ENVVAR: &str = "CONTRACT_ADDRESS_SHAREDWALLET";
+const CONTRACT_REVERT_ERROR_STRING_SIG: &str = "0x08c379a0";
 
 pub fn setup_handlers(cfg: &mut web::ServiceConfig) {
     cfg.service(web::resource(LAB_BASEURL).route(web::get().to(load_template_handler)))
@@ -103,7 +112,7 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
     let owner = match contract.owner().call().await {
         Ok(owner) => format!("{:#x}", owner),
         Err(e) => return helper::ui_alert(&e.to_string()),
-    };   
+    };
     context.insert("owner", &owner);
 
     let allowance = match contract.get_allowance_map_as_string().call().await {
@@ -148,7 +157,13 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
 }
 
 async fn deploy_handler(app_state: web::Data<AppState>) -> impl Responder {
-    deploy(app_state, CONTRACT_NAME, CONTRACT_ADDRESS_ENVVAR, LAB_BASEURL).await
+    deploy(
+        app_state,
+        CONTRACT_NAME,
+        CONTRACT_ADDRESS_ENVVAR,
+        LAB_BASEURL,
+    )
+    .await
 }
 
 async fn submit_handler(
@@ -157,7 +172,9 @@ async fn submit_handler(
 ) -> impl Responder {
     app_state
         .debug_service
-        .send_debug_event(&format!("<b>[{CONTRACT_NAME}]</b> transaction requested: {form:?}"))
+        .send_debug_event(&format!(
+            "<b>[{CONTRACT_NAME}]</b> transaction requested: {form:?}"
+        ))
         .await;
 
     let lock = match app_state.contracts.read() {
@@ -170,19 +187,24 @@ async fn submit_handler(
     };
 
     let contract = SharedWallet::new(contract.address(), contract.client());
-
-    let adr = match form.address.clone().unwrap_or("0".to_string()).parse::<Address>() {
-        Ok(adr) => adr,
-        Err(e) => return helper::ui_alert(&e.to_string()),
+    let adr = if form.address.is_none() {
+        H160::zero()
+    } else {
+        match helper::parse_address(form.address.clone().unwrap().as_str()) {
+            Ok(adr) => adr,
+            Err(e) => return helper::ui_alert(&e.to_string()),
+        }
     };
     let amount = form.amount.clone().unwrap_or(0);
     let message = form.message.clone().unwrap_or("".to_string());
 
     let tx_receipt: Result<Option<TransactionReceipt>, String> = match form.action {
-        Action::FundContract => fund_contract( contract.address(), amount, &app_state).await,
+        Action::FundContract => fund_contract(contract.address(), amount, &app_state).await,
         Action::SetAllowance => set_allowance(adr, amount, contract).await,
         Action::DenySending => deny_sending(adr, contract).await,
-        Action::TransferToAddress => transfer_to_address(adr, amount, message.as_str(), contract).await,
+        Action::TransferToAddress => {
+            transfer_to_address(adr, amount, message.as_str(), contract).await
+        }
     };
 
     let receipt = match tx_receipt {
@@ -203,7 +225,12 @@ async fn submit_handler(
 }
 
 fn trigger_reload() -> HttpResponse {
-    HttpResponse::NoContent().append_header(("HX-Trigger", "loadResult, loadLastBlockDetails, loadAccountBalances")).finish()
+    HttpResponse::NoContent()
+        .append_header((
+            "HX-Trigger",
+            "loadResult, loadLastBlockDetails, loadAccountBalances",
+        ))
+        .finish()
 }
 
 async fn fund_contract(
@@ -231,7 +258,11 @@ async fn set_allowance(
     amount: u64,
     contract: SharedWalletType,
 ) -> Result<Option<TransactionReceipt>, String> {
-    match contract.set_allowance(address, U256::from(amount)).send().await {
+    match contract
+        .set_allowance(address, U256::from(amount))
+        .send()
+        .await
+    {
         Ok(receipt) => match receipt.await {
             Ok(receipt) => Ok(receipt),
             Err(e) => Err(e.to_string()),
@@ -256,16 +287,36 @@ async fn deny_sending(
 async fn transfer_to_address(
     address: H160,
     amount: u64,
-    message: &str,
+    _message: &str,
     contract: SharedWalletType,
 ) -> Result<Option<TransactionReceipt>, String> {
     match contract
-        .transfer(address, U256::from(amount), Bytes::from_static("test".as_bytes()))
-        .send().await {
-            Ok(receipt) => match receipt.await {
-                Ok(receipt) => Ok(receipt),
-                Err(e) => Err(e.to_string()),
-            },
+        .transfer(
+            address,
+            U256::from(amount),
+            Bytes::from_static("test".as_bytes()),
+        )
+        .send()
+        .await
+    {
+        Ok(receipt) => match receipt.await {
+            Ok(receipt) => Ok(receipt),
             Err(e) => Err(e.to_string()),
+        },
+        Err(e) => match e {
+            ContractError::Revert(e) => {
+                let err = e.to_string();
+                match &err[..10] {
+                    CONTRACT_REVERT_ERROR_STRING_SIG => {
+                        let decoded = hex_decode(&err[10..]).map_err(|e| e.to_string())?;
+                        let res = abi_decode(&[ParamType::String], &decoded.as_slice())
+                            .map_err(|e| e.to_string())?;
+                        Err(format!("transaction reverted: {}", res[0]))
+                    }
+                    _ => Err(format!("unknown transaction revert error: {}", e)),
+                }
+            }
+            _ => Err(e.to_string()),
+        },
     }
 }

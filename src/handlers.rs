@@ -1,8 +1,8 @@
 use crate::{app::model::State as AppState, helper};
 use actix_web::{get, web, Error, HttpRequest, HttpResponse, Responder};
-use tera::Context;
-use ethers::types::{Address,H256, U256};
+use ethers::types::{Address, H256, U256};
 use ethers_providers::Middleware;
+use tera::Context;
 
 pub fn setup_handlers(cfg: &mut web::ServiceConfig) {
     cfg.service(index)

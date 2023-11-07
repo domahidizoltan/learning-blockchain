@@ -14,7 +14,11 @@ use actix_web::{
 use std::path::Path;
 use tera::Context;
 
-async fn load_template(app_state: web::Data<AppState>, lab_path: &str, contract_name: &str) -> impl Responder {
+async fn load_template(
+    app_state: web::Data<AppState>,
+    lab_path: &str,
+    contract_name: &str,
+) -> impl Responder {
     let readme_path = format!("src/{}/README.md", lab_path);
     let template_path = format!("{}/template.html", lab_path);
 
@@ -38,7 +42,12 @@ async fn load_template(app_state: web::Data<AppState>, lab_path: &str, contract_
     HttpResponse::Ok().body(rendered)
 }
 
-async fn deploy(app_state: web::Data<AppState>, contract_name: &str, contract_address_envvar: &str, lab_baseurl: &str) -> impl Responder {
+async fn deploy(
+    app_state: web::Data<AppState>,
+    contract_name: &str,
+    contract_address_envvar: &str,
+    lab_baseurl: &str,
+) -> impl Responder {
     let mut lock = match app_state.contracts.write() {
         Ok(lock) => lock,
         Err(e) => return helper::ui_alert(&e.to_string()),
@@ -69,7 +78,9 @@ async fn deploy(app_state: web::Data<AppState>, contract_name: &str, contract_ad
             Err(_) => {
                 app_state
                     .debug_service
-                    .send_debug_event(&format!("<b>[{contract_name}]</b> deploying contract {contract_name}.sol ..."))
+                    .send_debug_event(&format!(
+                        "<b>[{contract_name}]</b> deploying contract {contract_name}.sol ..."
+                    ))
                     .await;
                 match app_state.eth_client.deploy_contract(contract_name).await {
                     Ok(contract) => {

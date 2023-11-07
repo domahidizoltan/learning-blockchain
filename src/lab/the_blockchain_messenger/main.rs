@@ -1,4 +1,8 @@
-use crate::{app::model::State as AppState, helper, lab::{deploy, load_template}};
+use crate::{
+    app::model::State as AppState,
+    helper,
+    lab::{deploy, load_template},
+};
 use actix_web::{
     web::{self},
     HttpResponse, Responder,
@@ -84,7 +88,13 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
 }
 
 async fn deploy_handler(app_state: web::Data<AppState>) -> impl Responder {
-    deploy(app_state, CONTRACT_NAME, CONTRACT_ADDRESS_ENVVAR, LAB_BASEURL).await
+    deploy(
+        app_state,
+        CONTRACT_NAME,
+        CONTRACT_ADDRESS_ENVVAR,
+        LAB_BASEURL,
+    )
+    .await
 }
 
 async fn submit_handler(
@@ -93,7 +103,9 @@ async fn submit_handler(
 ) -> impl Responder {
     app_state
         .debug_service
-        .send_debug_event(&format!("<b>[{CONTRACT_NAME}]</b> transaction requested: {form:?}"))
+        .send_debug_event(&format!(
+            "<b>[{CONTRACT_NAME}]</b> transaction requested: {form:?}"
+        ))
         .await;
 
     let lock = match app_state.contracts.read() {
@@ -119,7 +131,10 @@ async fn submit_handler(
                 .send_debug_event(&format!("<b>[{CONTRACT_NAME}]</b> receipt: {receipt:?}"))
                 .await;
             HttpResponse::NoContent()
-                .append_header(("HX-Trigger", "loadResult,loadLastBlockDetails,loadAccountBalances"))
+                .append_header((
+                    "HX-Trigger",
+                    "loadResult,loadLastBlockDetails,loadAccountBalances",
+                ))
                 .finish()
         }
         Err(e) => helper::ui_alert(&e.to_string()),
