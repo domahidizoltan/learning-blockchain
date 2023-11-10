@@ -52,6 +52,7 @@ async fn main() -> std::io::Result<()> {
             .configure(lab::the_blockchain_messenger_handlers)
             .configure(lab::smart_money_handlers)
             .configure(lab::shared_wallet_handlers)
+            .configure(lab::voting_handlers)
     })
     .workers(1) //TODO multiple workers
     .bind(("0.0.0.0", 8080))?

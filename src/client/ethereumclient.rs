@@ -6,7 +6,7 @@ use ethers::{
     middleware::SignerMiddleware,
     prelude::Wallet,
     providers::{Http, Provider},
-    signers::{LocalWallet, Signer},
+    signers::{LocalWallet, Signer}, abi::Tokenize,
 };
 use ethers_contract::Contract;
 use ethers_solc::{remappings::Remapping, CompilerInput, CompilerOutput, Solc};
@@ -41,13 +41,13 @@ pub enum EthereumClientError {
     #[error("could not parse address")]
     AddressParseError(#[source] Box<dyn std::error::Error>),
 
-    #[error("could not find contract {}", .0)]
+    #[error("could not find contract: {}", .0)]
     ContractNotFound(String),
 
-    #[error("could not create deployer")]
+    #[error("could not create deployer: {}", .0)]
     DeployerCreationError(#[source] Box<dyn std::error::Error>),
 
-    #[error("could not deploy contract")]
+    #[error("could not deploy contract: {}", .0)]
     ContractDeploymentError(#[source] Box<dyn std::error::Error>),
 }
 
@@ -144,9 +144,10 @@ impl EthereumClient {
         Ok(Contract::new(address, abi, self.client.clone()))
     }
 
-    pub async fn deploy_contract(
+    pub async fn deploy_contract<T: Tokenize>(
         &self,
         contract_name: &str,
+        constructor_args: T
     ) -> Result<ContractInstanceType, EthereumClientError> {
         let (abi, bytecode, _runtime_bytecode) = match self.contracts.find(contract_name) {
             Some(compiled) => compiled.into_parts_or_default(),
@@ -160,7 +161,7 @@ impl EthereumClient {
         let factory = ContractFactory::new(abi, bytecode, self.client.clone());
 
         let contract = factory
-            .deploy(())
+            .deploy(constructor_args)
             .map_err(|e| EthereumClientError::DeployerCreationError(e.into()))?
             .confirmations(0usize)
             .send()

@@ -44,6 +44,7 @@ build: check
 
 run:
 	direnv allow
+	forge build
 	cargo run
 
 BLOCK_NR=0
@@ -67,6 +68,9 @@ get-balance:
 
 decode:
 	@cast 4byte-decode $(HEX)
+
+to-bytes32:
+	@echo -n $(STR)|xxd -p|cast to-bytes32
 
 # lab1: the_blockchain_messenger
 
@@ -169,3 +173,44 @@ lab3-get-data-at-block:
 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "nextOwner()(address)" --block=$(BLOCK_NR)
 	@echo 'guardiansResetCount:'
 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "guardiansResetCount()(uint)" --block=$(BLOCK_NR)
+
+
+# lab4: voting
+
+# export CONTRACT_ADDRESS_VOTING=$(make lab4-deploy)
+# ARGS=$(patsubst %,[$(shell echo -n %|xxd -p|cast to-bytes32)], $(BALLOT_PROPOSAL_NAMES))
+ARGS=[0x7465737431000000000000000000000000000000000000000000000000000000,0x7465737432000000000000000000000000000000000000000000000000000000]
+lab4-deploy:
+	@forge create --private-key=$(PRIVATE_KEY) src/lab/voting/Voting.sol:Ballot --constructor-args $(ARGS) | grep "Deployed to:" | cut -d' ' -f3
+
+lab4-get-data:
+	@echo 'chairperson:'
+	@cast call $(CONTRACT_ADDRESS_VOTING) "chairperson()(address)"
+	@echo 'proposals:'
+	@cast call $(CONTRACT_ADDRESS_VOTING) "getProposalsAsString()(string)"
+# 	@echo 'allowance:'
+# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getAllowanceMapAsString()(string)"
+# 	@echo 'isAllowedToSend:'
+# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getIsAllowedToSendMapAsString()(string)"
+# 	@echo 'guardian:'
+# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getGuardianMapAsString()(string)"
+# 	@echo 'nextOwner:'
+# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "nextOwner()(address)"
+# 	@echo 'guardiansResetCount:'
+# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "guardiansResetCount()(uint)"
+
+# lab4-get-data-at-block:
+# 	@echo 'contractBalance:'
+# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getContractBalance()(uint)" --block=$(BLOCK_NR)
+# 	@echo 'owner:'
+# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "owner()(address)" --block=$(BLOCK_NR)
+# 	@echo 'allowance:'
+# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getAllowanceMapAsString()(string)" --block=$(BLOCK_NR)
+# 	@echo 'isAllowedToSend:'
+# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getIsAllowedToSendMapAsString()(string)" --block=$(BLOCK_NR)
+# 	@echo 'guardian:'
+# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getGuardianMapAsString()(string)" --block=$(BLOCK_NR)
+# 	@echo 'nextOwner:'
+# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "nextOwner()(address)" --block=$(BLOCK_NR)
+# 	@echo 'guardiansResetCount:'
+# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "guardiansResetCount()(uint)" --block=$(BLOCK_NR)

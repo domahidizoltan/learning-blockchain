@@ -93,6 +93,7 @@ async fn deploy_handler(app_state: web::Data<AppState>) -> impl Responder {
         CONTRACT_NAME,
         CONTRACT_ADDRESS_ENVVAR,
         LAB_BASEURL,
+        (),
     )
     .await
 }

@@ -1,0 +1,60 @@
+<form hx-post="/lab/voting/submit" hx-target-*=".errors" hx-on::after-request="this.reset()">
+    <input type="hidden" name="action" value="GiveRightToVote">
+    <h2>Give right to vote</h2>
+    <label>Address:</label>
+    <div class="grid grid-cols-3 gap-4">
+        <div class="col-span-2">
+            <select name="address">
+            {% for adr in other_account_addresses %}
+                <option value="{{adr}}">{{adr}}</option>
+            {% endfor %}
+            </select>
+        </div>
+        <div class="p-0">
+            <div class="htmx-indicator"><span></span></div>
+            <button type="submit">Submit</button>
+        </div>
+    </div>
+</form>
+<div class="divider"></div>
+
+<form hx-post="/lab/voting/submit" hx-target-*=".errors" hx-on::after-request="this.reset()">
+    <input type="hidden" name="action" value="Delegate">
+    <h2>Delegate right to vote</h2>
+    <label>Address:</label>
+    <div class="grid grid-cols-3 gap-4">
+        <div class="col-span-2">
+            <select name="address">
+            {% for adr in other_account_addresses %}
+                <option value="{{adr}}">{{adr}}</option>
+            {% endfor %}
+            </select>
+        </div>
+        <div class="p-0">
+            <div class="htmx-indicator"><span></span></div>
+            <button type="submit">Delegate</button>
+        </div>
+    </div>
+</form>
+<div class="divider"></div>
+
+<form hx-post="/lab/voting/submit" hx-target-*=".errors" hx-on::after-request="this.reset()">
+    <input type="hidden" name="action" value="Vote">
+    <h2>Vote</h2>
+    <label>Proposals:</label>
+    <div class="col-span-2">
+        {% for proposal in proposals %}
+        <label class="label cursor-pointer">
+            <input type="radio" name="proposal" value="{{loop.index}}" class="radio" />
+            <span class="label-text">{{proposal}}</span> 
+        </label>
+        {% endfor %}
+    </div>
+    <div class="p-0">
+        <div class="htmx-indicator"><span></span></div>
+        <button type="submit">Vote</button>
+    </div>
+
+</form>
+
+<div class="errors"></div>

@@ -1,10 +1,12 @@
 pub mod shared_wallet;
 pub mod smart_money;
 pub mod the_blockchain_messenger;
+pub mod voting;
 
 pub use shared_wallet::main::setup_handlers as shared_wallet_handlers;
 pub use smart_money::main::setup_handlers as smart_money_handlers;
 pub use the_blockchain_messenger::main::setup_handlers as the_blockchain_messenger_handlers;
+pub use voting::main::setup_handlers as voting_handlers;
 
 use crate::{app::model::State as AppState, helper};
 use actix_web::{
@@ -13,6 +15,7 @@ use actix_web::{
 };
 use std::path::Path;
 use tera::Context;
+use ethers::abi::Tokenize;
 
 async fn load_template(
     app_state: web::Data<AppState>,
@@ -42,12 +45,13 @@ async fn load_template(
     HttpResponse::Ok().body(rendered)
 }
 
-async fn deploy(
+async fn deploy<T: Tokenize>(
     app_state: web::Data<AppState>,
     contract_name: &str,
     contract_address_envvar: &str,
     lab_baseurl: &str,
-) -> impl Responder {
+    constructor_args: T,
+) -> HttpResponse {
     let mut lock = match app_state.contracts.write() {
         Ok(lock) => lock,
         Err(e) => return helper::ui_alert(&e.to_string()),
@@ -82,7 +86,8 @@ async fn deploy(
                         "<b>[{contract_name}]</b> deploying contract {contract_name}.sol ..."
                     ))
                     .await;
-                match app_state.eth_client.deploy_contract(contract_name).await {
+                
+                match app_state.eth_client.deploy_contract(contract_name, constructor_args).await {
                     Ok(contract) => {
                         let adr = contract.address();
                         app_state

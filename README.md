@@ -1,6 +1,6 @@
 # My playground project to learn Rust and blockchain development
 
-Learning Rust and Blockchain development on Ethereum using lessons from https://ethereum-blockchain-developer.com/2022-01-remix-introduction/00-overview/
+Learning Rust and Blockchain development on Ethereum using lessons from https://ethereum-blockchain-developer.com/2022-01-remix-introduction/00-overview/ and https://docs.soliditylang.org/en/latest/solidity-by-example.html
 
 stack:
 Rust, Actix, Foundry, Tailwind (DaisyUI)

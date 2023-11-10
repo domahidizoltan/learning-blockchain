@@ -22,6 +22,12 @@
     form input {
         @apply input input-bordered input-primary w-full max-w-xs required:border-red-500
     }
+    form input.radio {
+        @apply p-0 w-4 h-4
+    }
+    form span.label-text {
+        @apply w-full pl-2 justify-start
+    }
     form textarea {
         @apply textarea textarea-bordered textarea-primary w-full max-w-xs required:border-red-500
     }

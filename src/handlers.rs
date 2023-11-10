@@ -37,7 +37,7 @@ async fn deploy_handler(name: web::Path<String>, app_state: web::Data<AppState>)
     }
 }
 
-#[get("/lab/{path}/form")]
+#[get("/lab/{path:the-blockchain-messenger|smart-money|shared-wallet}/form")]
 async fn lab_handler(path: web::Path<String>, app_state: web::Data<AppState>) -> impl Responder {
     let mut context = Context::new();
     context.insert("current_address", &app_state.accounts[0]);
