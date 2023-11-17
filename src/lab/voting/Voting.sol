@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0
-pragma solidity >=0.7.0 <0.9.0;
+pragma solidity ^0.8.15;
 
 import "forge-std/console.sol";
 
@@ -23,19 +23,27 @@ contract Ballot {
 
     Proposal[] public proposals;
 
+    event BallotCreated(address indexed chairperson, string proposals);
+    event GotRightToVote(address indexed voter);
+
     constructor(bytes32[] memory proposalNames) {
         console.log("Deploying a Ballot with chairperson", msg.sender);
 
         chairperson = msg.sender;
         voters[chairperson].weight = 1;
 
+        string memory props;
         for (uint i = 0; i < proposalNames.length; i++) {
             proposals.push(Proposal({
                 name: proposalNames[i],
                 voteCount: 0
             }));
-            console.log("Added proposal:", string(abi.encodePacked(proposalNames[i])));
+            string memory propName = string(abi.encodePacked(proposalNames[i]));
+            props = string.concat(props, propName);
+            props = string.concat(props, ",");
         }
+        console.log("Added proposals:", props);
+        emit BallotCreated(chairperson, props);
     }
 
     function giveRightToVote(address voter) external {
@@ -49,6 +57,9 @@ contract Ballot {
         );
         require(voters[voter].weight == 0);
         voters[voter].weight = 1;
+
+        console.log("Got right to vote:", voter);
+        emit GotRightToVote(voter);
     }
 
     function delegate(address to) external {
@@ -76,6 +87,8 @@ contract Ballot {
         } else {
             delegate_.weight += sender.weight;
         }
+
+        console.log("Voter delegated voting right", msg.sender, to);
     }
 
     function vote(uint proposal) external {
@@ -86,6 +99,7 @@ contract Ballot {
         sender.vote = proposal;
 
         proposals[proposal].voteCount += sender.weight;
+        console.log("Voter voted for proposal with weight", msg.sender, string(abi.encodePacked(proposal)), string(abi.encodePacked(sender.weight)));
     }
 
     function winningProposal() public view
@@ -111,7 +125,7 @@ contract Ballot {
     function getProposalsAsString() external view returns (string memory) {
         string memory result = "";
         for (uint i = 0; i < proposals.length; i++) {
-            result = string(abi.encodePacked(result, proposals[i].name, " => ", abi.encodePacked(proposals[i].voteCount), "\n"));
+            result = string(abi.encodePacked(result, proposals[i].name, " => ", abi.encode(proposals[i].voteCount), "\n"));
         }
         return result;
     }

@@ -5,7 +5,7 @@ use ethers::{
     contract::ContractInstance,
     middleware::SignerMiddleware,
     prelude::Wallet,
-    providers::{Http, Provider},
+    providers::{Ws, Provider},
     signers::{LocalWallet, Signer}, abi::Tokenize,
 };
 use ethers_contract::Contract;
@@ -52,17 +52,18 @@ pub enum EthereumClientError {
 }
 
 pub type ContractInstanceType = ContractInstance<
-    Arc<SignerMiddleware<ethers_providers::Provider<Http>, Wallet<ecdsa::SigningKey<Secp256k1>>>>,
-    SignerMiddleware<ethers_providers::Provider<Http>, Wallet<ecdsa::SigningKey<Secp256k1>>>,
+    Arc<SignerMiddleware<ethers_providers::Provider<Ws>, Wallet<ecdsa::SigningKey<Secp256k1>>>>,
+    SignerMiddleware<ethers_providers::Provider<Ws>, Wallet<ecdsa::SigningKey<Secp256k1>>>,
 >;
 
+#[derive(Clone)]
 pub struct EthereumClient {
-    client: std::sync::Arc<SignerMiddleware<Provider<Http>, LocalWallet>>,
+    client: std::sync::Arc<SignerMiddleware<Provider<Ws>, LocalWallet>>,
     contracts: CompilerOutput,
 }
 
 impl EthereumClient {
-    pub fn new() -> Result<Self, EthereumClientError> {
+    pub async fn new() -> Result<Self, EthereumClientError> {
         let chain_id = get_env_var(CHAIN_ID)?.parse::<u64>().map_err(|e| {
             EthereumClientError::ClientInitError(
                 "chain id could not be parsed".to_owned(),
@@ -71,13 +72,15 @@ impl EthereumClient {
         })?;
 
         let provider = get_env_var(ENDPOINT)
-            .map(Provider::<Http>::try_from)?
+            .map(|c| Provider::<Ws>::connect(c))
+            // .map(Provider::<Http>::try_from)?
             .map_err(|e| {
                 EthereumClientError::ClientInitError(
                     "could not connect to endpoint".to_owned(),
                     e.into(),
                 )
-            })?;
+            })?.await.unwrap();
+            // })?;
 
         let wallet = get_env_var(PRIVATE_KEY)
             .map(|pk| pk[2..].parse::<LocalWallet>())?
@@ -122,7 +125,7 @@ impl EthereumClient {
         }
     }
 
-    pub fn get_client(&self) -> std::sync::Arc<SignerMiddleware<Provider<Http>, LocalWallet>> {
+    pub fn get_client(&self) -> std::sync::Arc<SignerMiddleware<Provider<Ws>, LocalWallet>> {
         self.client.clone()
     }
 
@@ -136,7 +139,7 @@ impl EthereumClient {
             Some(compiled) => compiled.into_parts_or_default(),
             None => {
                 return Err(EthereumClientError::ContractNotFound(
-                    contract_name.to_string(),
+                    contract_name.to_owned(),
                 ))
             }
         };
@@ -153,7 +156,7 @@ impl EthereumClient {
             Some(compiled) => compiled.into_parts_or_default(),
             None => {
                 return Err(EthereumClientError::ContractNotFound(
-                    contract_name.to_string(),
+                    contract_name.to_owned(),
                 ))
             }
         };

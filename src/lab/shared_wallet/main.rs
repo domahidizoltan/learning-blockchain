@@ -8,21 +8,19 @@ use actix_web::{
     HttpResponse, Responder,
 };
 use ethers::{
-    abi::{decode as abi_decode, ParamType},
     contract::abigen,
     prelude::SignerMiddleware,
     prelude::Wallet,
     types::{Bytes, TransactionReceipt, TransactionRequest, H160, U256},
-    utils::hex::decode as hex_decode,
 };
 use ethers_contract::ContractError;
-use ethers_providers::{Http, Middleware};
+use ethers_providers::{Ws, Middleware};
 use k256::Secp256k1;
 use serde::Deserialize;
 use tera::Context;
 
 type SharedWalletType = SharedWallet<
-    SignerMiddleware<ethers_providers::Provider<Http>, Wallet<ecdsa::SigningKey<Secp256k1>>>,
+    SignerMiddleware<ethers_providers::Provider<Ws>, Wallet<ecdsa::SigningKey<Secp256k1>>>,
 >;
 
 #[derive(Deserialize, Debug)]
@@ -147,10 +145,7 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
 
     let rendered = match app_state.tmpl.render(&result_path, &context) {
         Ok(rendered) => rendered,
-        Err(e) => {
-            println!("error rendering template: {:?}", e);
-            return helper::ui_alert(&e.to_string());
-        }
+        Err(e) => return helper::render_error(e),
     };
 
     HttpResponse::Ok().body(rendered)
@@ -197,7 +192,7 @@ async fn submit_handler(
         }
     };
     let amount = form.amount.clone().unwrap_or(0);
-    let message = form.message.clone().unwrap_or("".to_string());
+    let message = form.message.clone().unwrap_or("".to_owned());
 
     let tx_receipt: Result<Option<TransactionReceipt>, String> = match form.action {
         Action::FundContract => fund_contract(contract.address(), amount, &app_state).await,
@@ -219,19 +214,10 @@ async fn submit_handler(
                 .debug_service
                 .send_debug_event(&format!("<b>[{CONTRACT_NAME}]</b> receipt: {receipt:?}"))
                 .await;
-            trigger_reload()
+            helper::trigger_reload()
         }
         None => helper::ui_alert("No receipt for transaction"),
     }
-}
-
-fn trigger_reload() -> HttpResponse {
-    HttpResponse::NoContent()
-        .append_header((
-            "HX-Trigger",
-            "loadResult, loadLastBlockDetails, loadAccountBalances",
-        ))
-        .finish()
 }
 
 async fn fund_contract(
@@ -305,17 +291,9 @@ async fn transfer_to_address(
             Err(e) => Err(e.to_string()),
         },
         Err(e) => match e {
-            ContractError::Revert(e) => {
-                let err = e.to_string();
-                match &err[..10] {
-                    CONTRACT_REVERT_ERROR_STRING_SIG => {
-                        let decoded = hex_decode(&err[10..]).map_err(|e| e.to_string())?;
-                        let res = abi_decode(&[ParamType::String], &decoded.as_slice())
-                            .map_err(|e| e.to_string())?;
-                        Err(format!("transaction reverted: {}", res[0]))
-                    }
-                    _ => Err(format!("unknown transaction revert error: {}", e)),
-                }
+            ContractError::Revert(err) => match &err.to_string()[..10] {
+                CONTRACT_REVERT_ERROR_STRING_SIG => Err(helper::decode_revert_error(&err)),
+                _ => Err(format!("unknown transaction revert error: {}", err.to_string())),
             }
             _ => Err(e.to_string()),
         },

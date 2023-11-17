@@ -17,10 +17,7 @@ pub fn setup_handlers(cfg: &mut web::ServiceConfig) {
 async fn index(app_state: web::Data<AppState>) -> impl Responder {
     match app_state.tmpl.render("index.html", &Context::new()) {
         Ok(rendered) => HttpResponse::Ok().body(rendered),
-        Err(e) => {
-            println!("error rendering template: {:?}", e);
-            helper::ui_alert(&e.to_string())
-        }
+        Err(e) => helper::render_error(e),
     }
 }
 
@@ -30,10 +27,7 @@ async fn deploy_handler(name: web::Path<String>, app_state: web::Data<AppState>)
     context.insert("contract_name", name.as_str());
     match app_state.tmpl.render("deploying.html", &context) {
         Ok(rendered) => HttpResponse::Ok().body(rendered),
-        Err(e) => {
-            println!("error rendering template: {:?}", e);
-            helper::ui_alert(&e.to_string())
-        }
+        Err(e) => helper::render_error(e),
     }
 }
 
@@ -49,10 +43,7 @@ async fn lab_handler(path: web::Path<String>, app_state: web::Data<AppState>) ->
         Ok(rendered) => HttpResponse::Ok()
             .append_header(("HX-Trigger", "loadResult"))
             .body(rendered),
-        Err(e) => {
-            println!("error rendering template: {:?}", e);
-            helper::ui_alert(&e.to_string())
-        }
+        Err(e) => helper::render_error(e),
     }
 }
 
@@ -85,10 +76,7 @@ async fn last_block_details_handler(app_state: web::Data<AppState>) -> impl Resp
 
     match app_state.tmpl.render("last_block_details.html", &context) {
         Ok(rendered) => HttpResponse::Ok().body(rendered),
-        Err(e) => {
-            println!("error rendering template: {:?}", e);
-            helper::ui_alert(&e.to_string())
-        }
+        Err(e) => helper::render_error(e),
     }
 }
 
@@ -113,10 +101,7 @@ async fn account_balances_handler(app_state: web::Data<AppState>) -> impl Respon
 
     match app_state.tmpl.render("account_balances.html", &context) {
         Ok(rendered) => HttpResponse::Ok().body(rendered),
-        Err(e) => {
-            println!("error rendering template: {:?}", e);
-            helper::ui_alert(&e.to_string())
-        }
+        Err(e) => helper::render_error(e),
     }
 }
 

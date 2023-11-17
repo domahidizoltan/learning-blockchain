@@ -5,8 +5,10 @@ mod helper;
 mod lab;
 
 use client::EthereumClient;
+use futures::executor::block_on;
+use lab::voting;
 
-use std::{collections::HashMap, sync::RwLock};
+use std::{collections::HashMap, sync::RwLock, thread};
 
 use actix_files as fs;
 use actix_web::{middleware::Logger, web, App, HttpServer};
@@ -29,12 +31,15 @@ fn create_tera() -> Result<Tera, tera::Error> {
 async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("debug"));
 
-    HttpServer::new(|| {
+    let eth_client = EthereumClient::new().await.unwrap();
+    let client_copy = eth_client.clone().get_client();
+    thread::spawn(move || block_on(voting::main::subscribe_to_events(client_copy)));
+
+    HttpServer::new(move || {
         let logger = Logger::default();
 
-        let eth_client = EthereumClient::new().unwrap();
         let tera = create_tera().unwrap();
-
+        let eth_client = eth_client.clone();
         let addresses = helper::get_all_account_addresses().unwrap();
 
         let state = AppState {

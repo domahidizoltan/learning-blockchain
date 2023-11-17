@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crate::{
     app::model::State as AppState,
     helper,
@@ -8,12 +10,14 @@ use actix_web::{
     HttpResponse, Responder,
 };
 use ethers::{
-    abi::{decode as abi_decode, ParamType, Token, FixedBytes},
+    abi::{Token, FixedBytes, Address},
     contract::abigen,
-    types::{H160, U256},
-    utils::hex::decode as hex_decode,
+    types::{H160, U256}, middleware::SignerMiddleware,
+    providers::{Ws, Provider},
+    signers::LocalWallet,
 };
-use ethers_contract::ContractError;
+use ethers_contract::{EthEvent, Contract};
+use ethers_providers::StreamExt;
 use serde::Deserialize;
 use tera::Context;
 
@@ -31,9 +35,17 @@ struct FormData {
     proposal: Option<u8>,
 }
 
+#[derive(Debug, Clone, EthEvent)]
+struct GotRightToVote {
+    address: Address,
+}
+
 abigen!(
     Ballot,
     r#"[
+        event BallotCreated(address indexed chairperson, string proposals)
+        event GotRightToVote(address indexed voter)
+
         function giveRightToVote(address)
         function delegate(address)
         function vote(uint)
@@ -50,7 +62,6 @@ const LAB_PATH: &str = "lab/voting";
 const LAB_BASEURL: &str = "/lab/voting";
 const CONTRACT_ADDRESS_ENVVAR: &str = "CONTRACT_ADDRESS_VOTING";
 const BALLOT_PROPOSAL_NAMES_ENVVAR: &str = "BALLOT_PROPOSAL_NAMES";
-const CONTRACT_REVERT_ERROR_STRING_SIG: &str = "0x08c379a0";
 
 pub fn setup_handlers(cfg: &mut web::ServiceConfig) {
     cfg.service(web::resource(LAB_BASEURL).route(web::get().to(load_template_handler)))
@@ -92,13 +103,9 @@ async fn override_lab_handler(app_state: web::Data<AppState>) -> impl Responder 
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
     let proposals: Vec<&str> = proposal_votes.split("\n")
-        .map(|p| {
-            let x = match p.rfind(" => ") {
+        .map(|p| match p.rfind(" => ") {
                 Some(pos) => &p[..pos].trim(),
                 None => p.trim(),
-            };
-            println!("x: {}", x);
-            x
         })
         .filter(|&p| !p.is_empty())
         .collect();
@@ -109,10 +116,7 @@ async fn override_lab_handler(app_state: web::Data<AppState>) -> impl Responder 
         Ok(rendered) => HttpResponse::Ok()
             .append_header(("HX-Trigger", "loadResult"))
             .body(rendered),
-        Err(e) => {
-            println!("error rendering template: {:?}", e);
-            helper::ui_alert(&e.to_string())
-        }
+        Err(e) => helper::render_error(e),
     }
 }
 
@@ -159,10 +163,7 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
 
     let rendered = match app_state.tmpl.render(&result_path, &context) {
         Ok(rendered) => rendered,
-        Err(e) => {
-            println!("error rendering template: {:?}", e);
-            return helper::ui_alert(&e.to_string());
-        }
+        Err(e) => return helper::render_error(e),
     };
 
     HttpResponse::Ok().body(rendered)
@@ -181,13 +182,33 @@ async fn deploy_handler(app_state: web::Data<AppState>) -> HttpResponse {
         .collect();
 
     deploy(
-        app_state,
+        app_state.clone(),
         CONTRACT_NAME,
         CONTRACT_ADDRESS_ENVVAR,
         LAB_BASEURL,
         Token::Array(proposals),
     )
     .await
+}
+
+pub async fn subscribe_to_events(eth_client: Arc<SignerMiddleware<Provider<Ws>, LocalWallet>>) {
+    let event = Contract::event_of_type::<GotRightToVote>(eth_client);
+    let mut stream = event.subscribe_with_meta().await.unwrap();
+
+    println!("subscribed to GotRightToVote events for contract {}", CONTRACT_NAME);
+
+    while let Some(event) = stream.next().await {
+        match event {
+            Ok(event) => {
+                println!("Received event: {:?}", event);
+                // Process the event...
+            }
+            Err(e) => {
+                eprintln!("Error receiving event: {:?}", e);
+            }
+        }
+    }
+
 }
 
 async fn submit_handler(
@@ -229,7 +250,13 @@ async fn submit_handler(
 
     let pending_tx = match call.send().await {
         Ok(receipt) => receipt,
-        Err(e) => return helper::ui_alert(&e.to_string()),
+        Err(e) => {
+            let err = match e.as_revert() {
+                Some(err) => helper::decode_revert_error(err),
+                None => e.to_string(),
+            };
+            return helper::ui_alert(&err.to_string());
+        },
     };
 
     match pending_tx.await {
@@ -238,34 +265,9 @@ async fn submit_handler(
                 .debug_service
                 .send_debug_event(&format!("<b>[{CONTRACT_NAME}]</b> receipt: {receipt:?}"))
                 .await;
-            trigger_reload()
-        }
-        Err(e) => {
-            let err = match e {
-                // ContractError::Revert(e) => {
-                //     let err = e.to_string();
-                //     match &err[..10] {
-                //         CONTRACT_REVERT_ERROR_STRING_SIG => {
-                //             let decoded = hex_decode(&err[10..]).map_err(|e| e.to_string())?;
-                //             let res = abi_decode(&[ParamType::String], &decoded.as_slice())
-                //                 .map_err(|e| e.to_string())?;
-                //             format!("transaction reverted: {}", res[0])
-                //         }
-                //         _ => format!("unknown transaction revert error: {}", e),
-                //     }
-                // }
-                _ => e.to_string(),
-            };
-            helper::ui_alert(&err)
-        }
+            helper::trigger_reload()
+        },
+        Err(e) => helper::ui_alert(&e.to_string()),
     }
 }
 
-fn trigger_reload() -> HttpResponse {
-    HttpResponse::NoContent()
-        .append_header((
-            "HX-Trigger",
-            "loadResult, loadLastBlockDetails, loadAccountBalances",
-        ))
-        .finish()
-}

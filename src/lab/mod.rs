@@ -36,10 +36,7 @@ async fn load_template(
 
     let rendered = match app_state.tmpl.render(&template_path, &context) {
         Ok(rendered) => rendered,
-        Err(e) => {
-            println!("error rendering template: {:?}", e);
-            return helper::ui_alert(&e.to_string());
-        }
+        Err(e) => return helper::render_error(e),
     };
 
     HttpResponse::Ok().body(rendered)

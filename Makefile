@@ -1,4 +1,4 @@
-export ETH_RPC_URL=${ENDPOINT}
+export ETH_RPC_URL=http://localhost:8545
 
 install-foundry:
 	curl -L https://foundry.paradigm.xyz | bash
@@ -183,34 +183,27 @@ ARGS=[0x7465737431000000000000000000000000000000000000000000000000000000,0x74657
 lab4-deploy:
 	@forge create --private-key=$(PRIVATE_KEY) src/lab/voting/Voting.sol:Ballot --constructor-args $(ARGS) | grep "Deployed to:" | cut -d' ' -f3
 
+lab4-giveRightToVote:
+	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_VOTING) "giveRightToVote(address)" "$(TO)"
+
+lab4-delegate:
+	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_VOTING) "delegate(address)" "$(TO)"
+
+lab4-vote:
+	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_VOTING) "vote(uint)" $(PROPOSAL)
+
 lab4-get-data:
 	@echo 'chairperson:'
 	@cast call $(CONTRACT_ADDRESS_VOTING) "chairperson()(address)"
 	@echo 'proposals:'
 	@cast call $(CONTRACT_ADDRESS_VOTING) "getProposalsAsString()(string)"
-# 	@echo 'allowance:'
-# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getAllowanceMapAsString()(string)"
-# 	@echo 'isAllowedToSend:'
-# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getIsAllowedToSendMapAsString()(string)"
-# 	@echo 'guardian:'
-# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getGuardianMapAsString()(string)"
-# 	@echo 'nextOwner:'
-# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "nextOwner()(address)"
-# 	@echo 'guardiansResetCount:'
-# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "guardiansResetCount()(uint)"
+	@echo 'winner name:'
+	@cast to-ascii $(shell cast call $(CONTRACT_ADDRESS_VOTING) "winnerName()(bytes32)")
 
-# lab4-get-data-at-block:
-# 	@echo 'contractBalance:'
-# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getContractBalance()(uint)" --block=$(BLOCK_NR)
-# 	@echo 'owner:'
-# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "owner()(address)" --block=$(BLOCK_NR)
-# 	@echo 'allowance:'
-# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getAllowanceMapAsString()(string)" --block=$(BLOCK_NR)
-# 	@echo 'isAllowedToSend:'
-# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getIsAllowedToSendMapAsString()(string)" --block=$(BLOCK_NR)
-# 	@echo 'guardian:'
-# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "getGuardianMapAsString()(string)" --block=$(BLOCK_NR)
-# 	@echo 'nextOwner:'
-# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "nextOwner()(address)" --block=$(BLOCK_NR)
-# 	@echo 'guardiansResetCount:'
-# 	@cast call $(CONTRACT_ADDRESS_SHAREDWALLET) "guardiansResetCount()(uint)" --block=$(BLOCK_NR)
+lab4-get-data-at-block:
+	@echo 'chairperson:'
+	@cast call $(CONTRACT_ADDRESS_VOTING) "chairperson()(address)" --block=$(BLOCK_NR)
+	@echo 'proposals:'
+	@cast call $(CONTRACT_ADDRESS_VOTING) "getProposalsAsString()(string)" --block=$(BLOCK_NR)
+	@echo 'winner name:'
+	@cast to-ascii $(shell cast call $(CONTRACT_ADDRESS_VOTING) "winnerName()(bytes32)") --block=$(BLOCK_NR)

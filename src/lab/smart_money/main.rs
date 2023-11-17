@@ -89,10 +89,7 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
     context.insert("contract_balance", &contract_balance.as_u64());
     let rendered = match app_state.tmpl.render(&result_path, &context) {
         Ok(rendered) => rendered,
-        Err(e) => {
-            println!("error rendering template: {:?}", e);
-            return helper::ui_alert(&e.to_string());
-        }
+        Err(e) => return helper::render_error(e),
     };
 
     HttpResponse::Ok().body(rendered)
@@ -152,12 +149,7 @@ async fn submit_handler(
                 .debug_service
                 .send_debug_event(&format!("<b>[{CONTRACT_NAME}]</b> receipt: {receipt:?}"))
                 .await;
-            HttpResponse::NoContent()
-                .append_header((
-                    "HX-Trigger",
-                    "loadResult, loadLastBlockDetails, loadAccountBalances",
-                ))
-                .finish()
+            helper::trigger_reload()
         }
         Err(e) => helper::ui_alert(&e.to_string()),
     }
