@@ -54,7 +54,26 @@
         <div class="htmx-indicator"><span></span></div>
         <button type="submit">Vote</button>
     </div>
-
 </form>
+<div class="divider"></div>
+
+<button class="error-btn" onclick="confirm_modal.showModal()">Delete ballot</button>
+<dialog id="confirm_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Delete ballot?</h3>
+        <p class="py-4">Do you really want to delete this ballot?</p>
+        <div class="modal-action">
+            <form hx-post="/lab/voting/submit" hx-target-*=".errors" hx-on::after-request="this.reset()">
+                <input type="hidden" name="action" value="Delete">
+                <div class="p-0">
+                    <div class="htmx-indicator"><span></span></div>
+                    <button class="btn btn-primary mr-2" onclick="confirm_modal.close()">Close</button>
+                    <button type="submit" class="error-btn">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</dialog>
+<div class="divider"></div>
 
 <div class="errors"></div>

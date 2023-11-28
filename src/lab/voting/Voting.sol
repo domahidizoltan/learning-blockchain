@@ -2,6 +2,17 @@
 pragma solidity ^0.8.15;
 
 import "forge-std/console.sol";
+import "openzeppelin-contracts/utils/Strings.sol";
+
+library helpers {
+    function getProposalsAsString(Ballot.Proposal[] memory proposals) internal pure returns (string memory) {
+        string memory result = "";
+        for (uint i = 0; i < proposals.length; i++) {
+            result = string(abi.encodePacked(result, proposals[i].name, " => ", Strings.toString(proposals[i].voteCount), "\n"));
+        }
+        return result;
+    }
+}
 
 /// @title Voting with delegation.
 contract Ballot {
@@ -23,8 +34,24 @@ contract Ballot {
 
     Proposal[] public proposals;
 
-    event BallotCreated(address indexed chairperson, string proposals);
-    event GotRightToVote(address indexed voter);
+    event BallotCreated(address indexed _chairperson, string _proposals);
+    event GotRightToVote(address indexed _voter);
+    event RightDelegated(address indexed _from, address indexed _to);
+    event Voted(address indexed _voter, uint indexed _proposal, uint _weight);
+
+    modifier isValidVote(Ballot.Voter memory voter){
+        require(voter.weight != 0, "No right to vote");
+        require(!voter.voted, "Already voted.");
+        _;
+    }
+
+    modifier onlyChairperson() {
+        require(
+            msg.sender == chairperson,
+            "Only chairperson have right to this action."
+        );
+        _;
+    }
 
     constructor(bytes32[] memory proposalNames) {
         console.log("Deploying a Ballot with chairperson", msg.sender);
@@ -46,11 +73,7 @@ contract Ballot {
         emit BallotCreated(chairperson, props);
     }
 
-    function giveRightToVote(address voter) external {
-        require(
-            msg.sender == chairperson,
-            "Only chairperson can give right to vote."
-        );
+    function giveRightToVote(address voter) external onlyChairperson() {
         require(
             !voters[voter].voted,
             "The voter already voted."
@@ -62,11 +85,8 @@ contract Ballot {
         emit GotRightToVote(voter);
     }
 
-    function delegate(address to) external {
+    function delegate(address to) external isValidVote(voters[msg.sender]) {
         Voter storage sender = voters[msg.sender];
-        require(sender.weight != 0, "You have no right to vote");
-        require(!sender.voted, "You already voted.");
-
         require(to != msg.sender, "Self-delegation is disallowed.");
 
         while (voters[to].delegate != address(0)) {
@@ -89,17 +109,17 @@ contract Ballot {
         }
 
         console.log("Voter delegated voting right", msg.sender, to);
+        emit RightDelegated(msg.sender, to);
     }
 
-    function vote(uint proposal) external {
+    function vote(uint proposal) external isValidVote(voters[msg.sender]) {
         Voter storage sender = voters[msg.sender];
-        require(sender.weight != 0, "Has no right to vote");
-        require(!sender.voted, "Already voted.");
         sender.voted = true;
         sender.vote = proposal;
 
         proposals[proposal].voteCount += sender.weight;
-        console.log("Voter voted for proposal with weight", msg.sender, string(abi.encodePacked(proposal)), string(abi.encodePacked(sender.weight)));
+        console.log("%s for proposal %s with weight %s", msg.sender, string(abi.encodePacked(proposal)), string(abi.encodePacked(sender.weight)));
+        emit Voted(msg.sender, proposal, sender.weight);
     }
 
     function winningProposal() public view
@@ -120,14 +140,12 @@ contract Ballot {
         winnerName_ = proposals[winningProposal()].name;
     }
 
-    //------------------ Helper functions ------------------//
+    function deleteBallot() external onlyChairperson() {
+        selfdestruct(payable(msg.sender));
+    }
 
     function getProposalsAsString() external view returns (string memory) {
-        string memory result = "";
-        for (uint i = 0; i < proposals.length; i++) {
-            result = string(abi.encodePacked(result, proposals[i].name, " => ", abi.encode(proposals[i].voteCount), "\n"));
-        }
-        return result;
+        return helpers.getProposalsAsString(proposals);
     }
 
 }

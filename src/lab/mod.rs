@@ -13,9 +13,9 @@ use actix_web::{
     web::{self},
     HttpResponse, Responder,
 };
+use ethers::abi::Tokenize;
 use std::path::Path;
 use tera::Context;
-use ethers::abi::Tokenize;
 
 async fn load_template(
     app_state: web::Data<AppState>,
@@ -83,8 +83,12 @@ async fn deploy<T: Tokenize>(
                         "<b>[{contract_name}]</b> deploying contract {contract_name}.sol ..."
                     ))
                     .await;
-                
-                match app_state.eth_client.deploy_contract(contract_name, constructor_args).await {
+
+                match app_state
+                    .eth_client
+                    .deploy_contract(contract_name, constructor_args)
+                    .await
+                {
                     Ok(contract) => {
                         let adr = contract.address();
                         app_state

@@ -1,12 +1,13 @@
 use crate::helper::{self, get_env_var};
 
 use ethers::{
+    abi::Tokenize,
     contract::ContractFactory,
     contract::ContractInstance,
     middleware::SignerMiddleware,
     prelude::Wallet,
-    providers::{Ws, Provider},
-    signers::{LocalWallet, Signer}, abi::Tokenize,
+    providers::{Provider, Ws},
+    signers::{LocalWallet, Signer},
 };
 use ethers_contract::Contract;
 use ethers_solc::{remappings::Remapping, CompilerInput, CompilerOutput, Solc};
@@ -79,8 +80,10 @@ impl EthereumClient {
                     "could not connect to endpoint".to_owned(),
                     e.into(),
                 )
-            })?.await.unwrap();
-            // })?;
+            })?
+            .await
+            .unwrap();
+        // })?;
 
         let wallet = get_env_var(PRIVATE_KEY)
             .map(|pk| pk[2..].parse::<LocalWallet>())?
@@ -150,7 +153,7 @@ impl EthereumClient {
     pub async fn deploy_contract<T: Tokenize>(
         &self,
         contract_name: &str,
-        constructor_args: T
+        constructor_args: T,
     ) -> Result<ContractInstanceType, EthereumClientError> {
         let (abi, bytecode, _runtime_bytecode) = match self.contracts.find(contract_name) {
             Some(compiled) => compiled.into_parts_or_default(),

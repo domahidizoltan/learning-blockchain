@@ -77,6 +77,10 @@
         @apply pl-1 text-sm
     }
 
+    button.error-btn, form button[type=submit].error-btn {
+        @apply btn btn-error
+    }
+
 }
 
 .copyable {

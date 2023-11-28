@@ -14,7 +14,7 @@ use ethers::{
     types::{Bytes, TransactionReceipt, TransactionRequest, H160, U256},
 };
 use ethers_contract::ContractError;
-use ethers_providers::{Ws, Middleware};
+use ethers_providers::{Middleware, Ws};
 use k256::Secp256k1;
 use serde::Deserialize;
 use tera::Context;
@@ -293,8 +293,11 @@ async fn transfer_to_address(
         Err(e) => match e {
             ContractError::Revert(err) => match &err.to_string()[..10] {
                 CONTRACT_REVERT_ERROR_STRING_SIG => Err(helper::decode_revert_error(&err)),
-                _ => Err(format!("unknown transaction revert error: {}", err.to_string())),
-            }
+                _ => Err(format!(
+                    "unknown transaction revert error: {}",
+                    err.to_string()
+                )),
+            },
             _ => Err(e.to_string()),
         },
     }

@@ -192,6 +192,9 @@ lab4-delegate:
 lab4-vote:
 	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_VOTING) "vote(uint)" $(PROPOSAL)
 
+lab4-deleteBallot:
+	cast send --private-key=$(PRIVATE_KEY) $(CONTRACT_ADDRESS_VOTING) "deleteBallot()"
+
 lab4-get-data:
 	@echo 'chairperson:'
 	@cast call $(CONTRACT_ADDRESS_VOTING) "chairperson()(address)"

@@ -1,8 +1,8 @@
 use crate::AppError;
 use actix_web::HttpResponse;
 use ethers::{
-    types::{Address, Bytes},
     abi::{decode as abi_decode, ParamType},
+    types::{Address, Bytes},
     utils::hex::decode as hex_decode,
 };
 use std::env;
@@ -62,8 +62,11 @@ pub fn render_error<T: std::error::Error>(e: T) -> HttpResponse {
 
 pub fn decode_revert_error(e: &Bytes) -> String {
     println!("revert error: {}", e.to_string());
-    let decoded = hex_decode(&e.to_string()[10..]).map_err(|e| e.to_string()).unwrap();
+    let decoded = hex_decode(&e.to_string()[10..])
+        .map_err(|e| e.to_string())
+        .unwrap();
     let res = abi_decode(&[ParamType::String], &decoded.as_slice())
-                .map_err(|e| e.to_string()).unwrap();
+        .map_err(|e| e.to_string())
+        .unwrap();
     format!("transaction reverted: {}", res[0])
 }
