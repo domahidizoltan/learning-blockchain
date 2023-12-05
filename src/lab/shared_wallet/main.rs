@@ -84,11 +84,7 @@ async fn load_template_handler(app_state: web::Data<AppState>) -> impl Responder
 async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
     let result_path = format!("{}/result.html", LAB_PATH);
 
-    let lock = match app_state.contracts.read() {
-        Ok(lock) => lock,
-        Err(e) => return helper::ui_alert(&e.to_string()),
-    };
-
+    let lock = app_state.contracts.read().await;
     let contract = match lock.get(CONTRACT_NAME) {
         Some(contract) => contract,
         None => return helper::ui_alert(&format!("contract {} not deployed", CONTRACT_NAME)),
@@ -173,10 +169,7 @@ async fn submit_handler(
         ))
         .await;
 
-    let lock = match app_state.contracts.read() {
-        Ok(lock) => lock,
-        Err(e) => return helper::ui_alert(&e.to_string()),
-    };
+    let lock = app_state.contracts.read().await;
     let contract = match lock.get(CONTRACT_NAME) {
         Some(contract) => contract,
         None => return helper::ui_alert(&format!("contract {} not deployed", CONTRACT_NAME)),
@@ -191,7 +184,7 @@ async fn submit_handler(
             Err(e) => return helper::ui_alert(&e.to_string()),
         }
     };
-    let amount = form.amount.clone().unwrap_or(0);
+    let amount = form.amount.unwrap_or(0);
     let message = form.message.clone().unwrap_or("".to_owned());
 
     let tx_receipt: Result<Option<TransactionReceipt>, String> = match form.action {
@@ -293,10 +286,7 @@ async fn transfer_to_address(
         Err(e) => match e {
             ContractError::Revert(err) => match &err.to_string()[..10] {
                 CONTRACT_REVERT_ERROR_STRING_SIG => Err(helper::decode_revert_error(&err)),
-                _ => Err(format!(
-                    "unknown transaction revert error: {}",
-                    err.to_string()
-                )),
+                _ => Err(format!("unknown transaction revert error: {}", err)),
             },
             _ => Err(e.to_string()),
         },

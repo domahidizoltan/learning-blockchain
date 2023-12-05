@@ -111,6 +111,6 @@ async fn debug_events(
     app_state: web::Data<AppState>,
 ) -> Result<HttpResponse, Error> {
     let (res, session, _msg_stream) = actix_ws::handle(&req, stream)?;
-    app_state.debug_service.set_debug_session(session);
+    app_state.debug_service.set_debug_session(session).await;
     Ok(res)
 }

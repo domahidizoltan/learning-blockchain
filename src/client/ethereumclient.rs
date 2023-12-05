@@ -12,10 +12,7 @@ use ethers::{
 use ethers_contract::Contract;
 use ethers_solc::{remappings::Remapping, CompilerInput, CompilerOutput, Solc};
 use k256::Secp256k1;
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::{path::Path, sync::Arc};
 
 const PRIVATE_KEY: &str = "PRIVATE_KEY";
 const ENDPOINT: &str = "ENDPOINT";
@@ -73,7 +70,7 @@ impl EthereumClient {
         })?;
 
         let provider = get_env_var(ENDPOINT)
-            .map(|c| Provider::<Ws>::connect(c))
+            .map(Provider::<Ws>::connect)
             // .map(Provider::<Http>::try_from)?
             .map_err(|e| {
                 EthereumClientError::ClientInitError(
@@ -109,7 +106,7 @@ impl EthereumClient {
             .map_err(|_| EthereumClientError::ContractSourceNotFound())?;
 
         let remappings = Remapping::find_many(Path::new("."));
-        let input = CompilerInput::new(PathBuf::from(source))
+        let input = CompilerInput::new(source)
             .map_err(|e| EthereumClientError::ContractCompilationError(e.into()))?;
         let remapped_input = input[0].clone().with_remappings(remappings);
 
@@ -117,14 +114,14 @@ impl EthereumClient {
             Ok(output) => {
                 if output.has_error() {
                     let s: Vec<String> = output.errors.iter().map(|e| e.message.clone()).collect();
-                    return Err(EthereumClientError::ContractCompilationInternalError(
+                    Err(EthereumClientError::ContractCompilationInternalError(
                         s.join("\n"),
-                    ));
+                    ))
                 } else {
                     Ok(output)
                 }
             }
-            Err(e) => return Err(EthereumClientError::ContractCompilationError(e.into())),
+            Err(e) => Err(EthereumClientError::ContractCompilationError(e.into())),
         }
     }
 

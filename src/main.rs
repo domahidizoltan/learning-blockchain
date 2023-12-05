@@ -8,7 +8,8 @@ use client::EthereumClient;
 use futures::executor::block_on;
 use lab::voting;
 
-use std::{collections::HashMap, sync::RwLock, thread};
+use async_rwlock::RwLock;
+use std::{collections::HashMap, thread};
 
 use actix_files as fs;
 use actix_web::{middleware::Logger, web, App, HttpServer};
@@ -34,6 +35,7 @@ async fn main() -> std::io::Result<()> {
     let eth_client = EthereumClient::new().await.unwrap();
     let client_copy = eth_client.clone().get_client();
     thread::spawn(move || block_on(voting::main::subscribe_to_events(client_copy)));
+    let debug_svc = AppDebug::new();
 
     HttpServer::new(move || {
         let logger = Logger::default();
@@ -41,12 +43,13 @@ async fn main() -> std::io::Result<()> {
         let tera = create_tera().unwrap();
         let eth_client = eth_client.clone();
         let addresses = helper::get_all_account_addresses().unwrap();
+        let debug_service = debug_svc.clone();
 
         let state = AppState {
             tmpl: tera,
             eth_client,
             contracts: RwLock::new(HashMap::new()),
-            debug_service: AppDebug::new(),
+            debug_service,
             accounts: addresses,
         };
         App::new()
@@ -59,7 +62,6 @@ async fn main() -> std::io::Result<()> {
             .configure(lab::shared_wallet_handlers)
             .configure(lab::voting_handlers)
     })
-    .workers(1) //TODO multiple workers
     .bind(("0.0.0.0", 8080))?
     .run()
     .await

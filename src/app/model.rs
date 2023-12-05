@@ -1,4 +1,5 @@
-use std::{collections::HashMap, env, sync::RwLock};
+use async_rwlock::RwLock;
+use std::{collections::HashMap, env};
 
 use crate::client::{ContractInstanceType, EthereumClient};
 use ethers::types::Address;

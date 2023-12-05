@@ -125,10 +125,7 @@ async fn override_lab_handler(app_state: web::Data<AppState>) -> impl Responder 
     let mut context = Context::new();
     context.insert("other_account_addresses", &app_state.accounts[1..]);
 
-    let lock = match app_state.contracts.read() {
-        Ok(lock) => lock,
-        Err(e) => return helper::ui_alert(&e.to_string()),
-    };
+    let lock = app_state.contracts.read().await;
     let contract = match lock.get(CONTRACT_NAME) {
         Some(contract) => contract,
         None => return helper::ui_alert(&format!("contract {} not deployed", CONTRACT_NAME)),
@@ -140,16 +137,16 @@ async fn override_lab_handler(app_state: web::Data<AppState>) -> impl Responder 
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
     let proposals: Vec<&str> = proposal_votes
-        .split("\n")
+        .split('\n')
         .map(|p| match p.rfind(" => ") {
-            Some(pos) => &p[..pos].trim(),
+            Some(pos) => p[..pos].trim(),
             None => p.trim(),
         })
         .filter(|&p| !p.is_empty())
         .collect();
     context.insert("proposals", &proposals);
 
-    let file_name = format!("lab/voting/form.html");
+    let file_name = "lab/voting/form.html".to_owned();
     match app_state.tmpl.render(&file_name, &context) {
         Ok(rendered) => HttpResponse::Ok()
             .append_header(("HX-Trigger", "loadResult"))
@@ -161,10 +158,7 @@ async fn override_lab_handler(app_state: web::Data<AppState>) -> impl Responder 
 async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
     let result_path = format!("{}/result.html", LAB_PATH);
 
-    let lock = match app_state.contracts.read() {
-        Ok(lock) => lock,
-        Err(e) => return helper::ui_alert(&e.to_string()),
-    };
+    let lock = app_state.contracts.read().await;
 
     let contract = match lock.get(CONTRACT_NAME) {
         Some(contract) => contract,
@@ -194,7 +188,7 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
     context.insert("winner_name", &winner_name);
 
     let proposal_votes = match contract.get_proposals_as_string().call().await {
-        Ok(proposals) => proposals.replace("\n", "<br/>"),
+        Ok(proposals) => proposals.replace('\n', "<br/>"),
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
     context.insert("proposal_votes", &proposal_votes);
@@ -214,7 +208,7 @@ async fn deploy_handler(app_state: web::Data<AppState>) -> HttpResponse {
     };
 
     let proposals = proposals
-        .split("\n")
+        .split('\n')
         .map(|p| p.trim())
         .filter(|&p| !p.is_empty())
         .map(|p| Token::FixedBytes(FixedBytes::from(p)))
@@ -288,10 +282,7 @@ async fn submit_handler(
         ))
         .await;
 
-    let lock = match app_state.contracts.read() {
-        Ok(lock) => lock,
-        Err(e) => return helper::ui_alert(&e.to_string()),
-    };
+    let lock = app_state.contracts.read().await;
     let contract = match lock.get(CONTRACT_NAME) {
         Some(contract) => contract,
         None => return helper::ui_alert(&format!("contract {} not deployed", CONTRACT_NAME)),
@@ -322,7 +313,7 @@ async fn submit_handler(
                 Some(err) => helper::decode_revert_error(err),
                 None => e.to_string(),
             };
-            return helper::ui_alert(&err.to_string());
+            return helper::ui_alert(&err);
         }
     };
 

@@ -49,10 +49,7 @@ async fn deploy<T: Tokenize>(
     lab_baseurl: &str,
     constructor_args: T,
 ) -> HttpResponse {
-    let mut lock = match app_state.contracts.write() {
-        Ok(lock) => lock,
-        Err(e) => return helper::ui_alert(&e.to_string()),
-    };
+    let mut lock = app_state.contracts.write().await;
 
     if let Some(contract) = lock.get(contract_name) {
         println!(

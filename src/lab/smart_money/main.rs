@@ -62,10 +62,7 @@ async fn load_template_handler(app_state: web::Data<AppState>) -> impl Responder
 async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
     let result_path = format!("{}/result.html", LAB_PATH);
 
-    let lock = match app_state.contracts.read() {
-        Ok(lock) => lock,
-        Err(e) => return helper::ui_alert(&e.to_string()),
-    };
+    let lock = app_state.contracts.read().await;
 
     let contract = match lock.get(CONTRACT_NAME) {
         Some(contract) => contract,
@@ -117,10 +114,7 @@ async fn submit_handler(
         ))
         .await;
 
-    let lock = match app_state.contracts.read() {
-        Ok(lock) => lock,
-        Err(e) => return helper::ui_alert(&e.to_string()),
-    };
+    let lock = app_state.contracts.read().await;
     let contract = match lock.get(CONTRACT_NAME) {
         Some(contract) => contract,
         None => return helper::ui_alert(&format!("contract {} not deployed", CONTRACT_NAME)),

@@ -56,16 +56,14 @@ pub fn trigger_reload() -> HttpResponse {
 
 pub fn render_error<T: std::error::Error>(e: T) -> HttpResponse {
     let cause = e.source();
-    println!("error rendering template: {:?}", e);
     ui_alert(cause.unwrap_or(&e).to_string().as_str())
 }
 
 pub fn decode_revert_error(e: &Bytes) -> String {
-    println!("revert error: {}", e.to_string());
     let decoded = hex_decode(&e.to_string()[10..])
         .map_err(|e| e.to_string())
         .unwrap();
-    let res = abi_decode(&[ParamType::String], &decoded.as_slice())
+    let res = abi_decode(&[ParamType::String], decoded.as_slice())
         .map_err(|e| e.to_string())
         .unwrap();
     format!("transaction reverted: {}", res[0])
