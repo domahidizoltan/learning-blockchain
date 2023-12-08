@@ -54,9 +54,11 @@ pub type ContractInstanceType = ContractInstance<
     SignerMiddleware<ethers_providers::Provider<Ws>, Wallet<ecdsa::SigningKey<Secp256k1>>>,
 >;
 
+pub type EthClient = Arc<SignerMiddleware<Provider<Ws>, LocalWallet>>;
+
 #[derive(Clone)]
 pub struct EthereumClient {
-    client: std::sync::Arc<SignerMiddleware<Provider<Ws>, LocalWallet>>,
+    client: EthClient,
     contracts: CompilerOutput,
 }
 
@@ -125,7 +127,7 @@ impl EthereumClient {
         }
     }
 
-    pub fn get_client(&self) -> std::sync::Arc<SignerMiddleware<Provider<Ws>, LocalWallet>> {
+    pub fn get_client(&self) -> EthClient {
         self.client.clone()
     }
 

@@ -90,3 +90,10 @@
 .clicked {
     @apply bg-white transition-colors
 }
+
+form.short input {
+    @apply w-5/6
+}
+form.short button[type=submit] {
+    @apply btn-xs
+}

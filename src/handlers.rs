@@ -1,6 +1,6 @@
 use crate::{app::model::State as AppState, helper};
-use actix_web::{get, web, Error, HttpRequest, HttpResponse, Responder};
-use ethers::types::{Address, H256, U256};
+use actix_web::{get, post, web, Error, HttpRequest, HttpResponse, Responder};
+use ethers::types::Address;
 use ethers_providers::Middleware;
 use tera::Context;
 
@@ -8,7 +8,8 @@ pub fn setup_handlers(cfg: &mut web::ServiceConfig) {
     cfg.service(index)
         .service(deploy_handler)
         .service(lab_handler)
-        .service(last_block_details_handler)
+        .service(load_block_details_handler)
+        .service(block_details_handler)
         .service(account_balances_handler)
         .service(web::resource("/ws/debug").route(web::get().to(debug_events)));
 }
@@ -47,49 +48,54 @@ async fn lab_handler(path: web::Path<String>, app_state: web::Data<AppState>) ->
     }
 }
 
-#[get("/last-block-details")]
-async fn last_block_details_handler(app_state: web::Data<AppState>) -> impl Responder {
+#[post("/load-block-details")]
+async fn load_block_details_handler() -> impl Responder {
+    helper::trigger_reload()
+}
+
+#[get("/block-details")]
+async fn block_details_handler(app_state: web::Data<AppState>, req: HttpRequest) -> impl Responder {
     let eth = app_state.eth_client.get_client();
-
-    let block_number = match eth.get_block_number().await {
-        Ok(block_number) => block_number.as_u64(),
-        Err(e) => return helper::ui_alert(&e.to_string()),
+    let block_id = helper::get_block_id_from_header_value(req.headers());
+    let block = match helper::get_block(eth, block_id).await {
+        Ok(block) => block,
+        Err(e) => return helper::ui_alert(&e),
     };
 
-    let block = match eth.get_block(block_number).await {
-        Ok(block) => block.unwrap_or_default(),
-        Err(e) => return helper::ui_alert(&e.to_string()),
-    };
-    let zero = H256::zero();
-    let tx = block.transactions.get(0).unwrap_or(&zero);
+    let tx = block.transactions.get(0).unwrap();
 
     let mut context = Context::new();
-    context.insert("block_number", &block_number);
+    context.insert("block_number", &block.number.unwrap_or_default().as_u64());
     context.insert(
         "block_hash",
         &format!("{:#x}", block.hash.unwrap_or_default()),
     );
     context.insert("parent_hash", &format!("{:#x}", block.parent_hash));
     context.insert("block_time", &block.time().unwrap_or_default().to_string());
-    context.insert("transaction", &format!("{:#x}", U256::from(tx.as_bytes())));
+    context.insert("transaction", &format!("{:#x}", tx.hash));
     context.insert("gas_used", &block.gas_used.as_u64());
 
-    match app_state.tmpl.render("last_block_details.html", &context) {
+    match app_state.tmpl.render("block_details.html", &context) {
         Ok(rendered) => HttpResponse::Ok().body(rendered),
         Err(e) => helper::render_error(e),
     }
 }
 
 #[get("/account-balances")]
-async fn account_balances_handler(app_state: web::Data<AppState>) -> impl Responder {
+async fn account_balances_handler(
+    app_state: web::Data<AppState>,
+    req: HttpRequest,
+) -> impl Responder {
+    let eth = app_state.eth_client.get_client();
+    let block_id_option = helper::get_block_id_from_header_value(req.headers());
+    let block_id = match helper::to_block_id(eth.clone(), block_id_option).await {
+        Ok(block_id) => Some(block_id),
+        Err(e) => return helper::ui_alert(&e),
+    };
+
     let mut balances = vec![(Address::zero(), String::from("0")); app_state.accounts.len()];
     for (i, adr) in app_state.accounts.iter().enumerate() {
-        let balance = match app_state
-            .eth_client
-            .get_client()
-            .get_balance(*adr, None)
-            .await
-        {
+        let balance = match eth.clone().get_balance(*adr, block_id).await {
             Ok(balance) => balance.to_string(),
             Err(e) => return helper::ui_alert(&e.to_string()),
         };

@@ -1,16 +1,15 @@
-use async_rwlock::RwLock;
-use std::{collections::HashMap, env};
-
-use crate::client::{ContractInstanceType, EthereumClient};
-use ethers::types::Address;
-use tera::Tera;
+use std::{collections::HashMap, env, sync::Arc};
 
 use crate::app::debugservice::DebugService;
+use crate::client::{ContractInstanceType, EthereumClient};
+use ethers::types::Address;
+use futures::lock::Mutex;
+use tera::Tera;
 
 pub struct State {
     pub tmpl: Tera,
     pub eth_client: EthereumClient,
-    pub contracts: RwLock<HashMap<String, ContractInstanceType>>,
+    pub contracts: Arc<Mutex<HashMap<String, ContractInstanceType>>>,
     pub debug_service: DebugService,
     pub accounts: Vec<Address>,
 }
@@ -22,4 +21,7 @@ pub enum Error {
 
     #[error("could not parse address")]
     AddressParseError(#[source] Box<dyn std::error::Error>),
+
+    #[error("no block found at hash or number{}", .0)]
+    NoBlockFoundError(String),
 }

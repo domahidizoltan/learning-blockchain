@@ -5,7 +5,7 @@ use crate::{
 };
 use actix_web::{
     web::{self},
-    HttpResponse, Responder,
+    HttpRequest, HttpResponse, Responder,
 };
 use ethers::{
     contract::abigen,
@@ -81,10 +81,16 @@ async fn load_template_handler(app_state: web::Data<AppState>) -> impl Responder
     load_template(app_state, LAB_PATH, CONTRACT_NAME).await
 }
 
-async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
+async fn tx_result_handler(app_state: web::Data<AppState>, req: HttpRequest) -> impl Responder {
     let result_path = format!("{}/result.html", LAB_PATH);
+    let eth = app_state.eth_client.get_client();
+    let block_id = helper::get_block_id_from_header_value(req.headers());
+    let block_id = match helper::to_block_id(eth, block_id).await {
+        Ok(block_id) => block_id,
+        Err(e) => return helper::ui_alert(&e),
+    };
 
-    let lock = app_state.contracts.read().await;
+    let lock = app_state.contracts.lock().await;
     let contract = match lock.get(CONTRACT_NAME) {
         Some(contract) => contract,
         None => return helper::ui_alert(&format!("contract {} not deployed", CONTRACT_NAME)),
@@ -103,37 +109,57 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
     };
     context.insert("contract_balance", &contract_balance);
 
-    let owner = match contract.owner().call().await {
+    let owner = match contract.owner().block(block_id).call().await {
         Ok(owner) => format!("{:#x}", owner),
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
     context.insert("owner", &owner);
 
-    let allowance = match contract.get_allowance_map_as_string().call().await {
+    let allowance = match contract
+        .get_allowance_map_as_string()
+        .block(block_id)
+        .call()
+        .await
+    {
         Ok(allowance) => allowance,
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
     context.insert("allowance", &allowance);
 
-    let is_allowed_to_send = match contract.get_is_allowed_to_send_map_as_string().call().await {
+    let is_allowed_to_send = match contract
+        .get_is_allowed_to_send_map_as_string()
+        .block(block_id)
+        .call()
+        .await
+    {
         Ok(allowed) => allowed,
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
     context.insert("is_allowed_to_send", &is_allowed_to_send);
 
-    let guardian = match contract.get_guardian_map_as_string().call().await {
+    let guardian = match contract
+        .get_guardian_map_as_string()
+        .block(block_id)
+        .call()
+        .await
+    {
         Ok(guardian) => guardian,
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
     context.insert("guardian", &guardian);
 
-    let next_owner = match contract.next_owner().call().await {
+    let next_owner = match contract.next_owner().block(block_id).call().await {
         Ok(owner) => format!("{:#x}", owner),
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
     context.insert("next_owner", &next_owner);
 
-    let guardians_reset_count = match contract.guardians_reset_count().call().await {
+    let guardians_reset_count = match contract
+        .guardians_reset_count()
+        .block(block_id)
+        .call()
+        .await
+    {
         Ok(count) => count,
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
@@ -169,7 +195,7 @@ async fn submit_handler(
         ))
         .await;
 
-    let lock = app_state.contracts.read().await;
+    let lock = app_state.contracts.lock().await;
     let contract = match lock.get(CONTRACT_NAME) {
         Some(contract) => contract,
         None => return helper::ui_alert(&format!("contract {} not deployed", CONTRACT_NAME)),

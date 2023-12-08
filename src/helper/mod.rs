@@ -1,14 +1,17 @@
-use crate::AppError;
-use actix_web::HttpResponse;
+use crate::AppError::NoBlockFoundError;
+use crate::{client::ethereumclient::EthClient, AppError};
+use actix_web::{http::header::HeaderMap, HttpResponse};
 use ethers::{
     abi::{decode as abi_decode, ParamType},
-    types::{Address, Bytes},
-    utils::hex::decode as hex_decode,
+    types::{Address, Block, BlockId, Bytes, Transaction, H256},
+    utils::{self, hex::decode as hex_decode},
 };
+use ethers_providers::Middleware;
 use std::env;
 
 const ACCOUNT: &str = "ACCOUNT";
 const OTHER_ACCOUNTS: &str = "OTHER_ACCOUNTS";
+const BLOCK_ID_HEADER: &str = "Blockid";
 
 pub fn get_env_var(key: &str) -> Result<String, AppError> {
     env::var(key).map_err(|e| AppError::KeyNotSetError(key.to_owned(), e))
@@ -49,7 +52,7 @@ pub fn trigger_reload() -> HttpResponse {
     HttpResponse::NoContent()
         .append_header((
             "HX-Trigger",
-            "loadResult, loadLastBlockDetails, loadAccountBalances",
+            "loadResult, loadBlockDetails, loadAccountBalances",
         ))
         .finish()
 }
@@ -67,4 +70,57 @@ pub fn decode_revert_error(e: &Bytes) -> String {
         .map_err(|e| e.to_string())
         .unwrap();
     format!("transaction reverted: {}", res[0])
+}
+
+pub async fn to_block_id(eth: EthClient, input: Option<&str>) -> Result<BlockId, String> {
+    match input {
+        Some(input) => {
+            if input.len() == 66 && input[0..2].starts_with("0x") {
+                let hex_decoded = match utils::hex::decode(&input[2..]) {
+                    Ok(decoded) => decoded,
+                    Err(e) => return Err(e.to_string()),
+                };
+                let hash = H256::from_slice(&hex_decoded);
+                Ok(BlockId::from(hash))
+            } else {
+                let nr = input.parse::<u64>().unwrap();
+                Ok(BlockId::from(nr))
+            }
+        }
+        None => {
+            let nr = match eth.get_block_number().await {
+                Ok(block_number) => block_number.as_u64(),
+                Err(e) => return Err(e.to_string()),
+            };
+            Ok(BlockId::from(nr))
+        }
+    }
+}
+
+pub async fn get_block(eth: EthClient, input: Option<&str>) -> Result<Block<Transaction>, String> {
+    let block_id = match to_block_id(eth.clone(), input).await {
+        Ok(block_id) => block_id,
+        Err(e) => return Err(e),
+    };
+
+    let block = match eth.get_block_with_txs(block_id).await {
+        Ok(block) => block,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    if let Some(block) = block {
+        Ok(block)
+    } else {
+        Err(NoBlockFoundError(input.unwrap_or_default().to_string()).to_string())
+    }
+}
+
+pub fn get_block_id_from_header_value(headers: &HeaderMap) -> Option<&str> {
+    match headers.get(BLOCK_ID_HEADER) {
+        Some(block_id) => match block_id.to_str() {
+            Ok(block_id) if block_id.is_empty() => Some(block_id),
+            _ => None,
+        },
+        None => None,
+    }
 }

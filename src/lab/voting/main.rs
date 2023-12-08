@@ -11,7 +11,7 @@ use crate::{
 };
 use actix_web::{
     web::{self},
-    HttpResponse, Responder,
+    HttpRequest, HttpResponse, Responder,
 };
 use ethers::{
     abi::{Address, FixedBytes, Token},
@@ -121,18 +121,30 @@ async fn load_template_handler(app_state: web::Data<AppState>) -> impl Responder
     load_template(app_state, LAB_PATH, CONTRACT_NAME).await
 }
 
-async fn override_lab_handler(app_state: web::Data<AppState>) -> impl Responder {
+async fn override_lab_handler(app_state: web::Data<AppState>, req: HttpRequest) -> impl Responder {
+    let eth = app_state.eth_client.get_client();
+    let block_id = helper::get_block_id_from_header_value(req.headers());
+    let block_id = match helper::to_block_id(eth, block_id).await {
+        Ok(block_id) => block_id,
+        Err(e) => return helper::ui_alert(&e),
+    };
+
     let mut context = Context::new();
     context.insert("other_account_addresses", &app_state.accounts[1..]);
 
-    let lock = app_state.contracts.read().await;
+    let lock = app_state.contracts.lock().await;
     let contract = match lock.get(CONTRACT_NAME) {
         Some(contract) => contract,
         None => return helper::ui_alert(&format!("contract {} not deployed", CONTRACT_NAME)),
     };
     let contract = Ballot::new(contract.address(), contract.client());
 
-    let proposal_votes = match contract.get_proposals_as_string().call().await {
+    let proposal_votes = match contract
+        .get_proposals_as_string()
+        .block(block_id)
+        .call()
+        .await
+    {
         Ok(proposals) => proposals,
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
@@ -155,10 +167,16 @@ async fn override_lab_handler(app_state: web::Data<AppState>) -> impl Responder 
     }
 }
 
-async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
+async fn tx_result_handler(app_state: web::Data<AppState>, req: HttpRequest) -> impl Responder {
     let result_path = format!("{}/result.html", LAB_PATH);
+    let eth = app_state.eth_client.get_client();
+    let block_id = helper::get_block_id_from_header_value(req.headers());
+    let block_id = match helper::to_block_id(eth, block_id).await {
+        Ok(block_id) => block_id,
+        Err(e) => return helper::ui_alert(&e),
+    };
 
-    let lock = app_state.contracts.read().await;
+    let lock = app_state.contracts.lock().await;
 
     let contract = match lock.get(CONTRACT_NAME) {
         Some(contract) => contract,
@@ -171,13 +189,13 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
 
     let contract = Ballot::new(contract.address(), contract.client());
 
-    let chairperson = match contract.chairperson().call().await {
+    let chairperson = match contract.chairperson().block(block_id).call().await {
         Ok(chairperson) => format!("{:#x}", chairperson),
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
     context.insert("chairperson", &chairperson);
 
-    let winner_name = match contract.winner_name().call().await {
+    let winner_name = match contract.winner_name().block(block_id).call().await {
         Ok(name) => name,
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
@@ -187,7 +205,12 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
     };
     context.insert("winner_name", &winner_name);
 
-    let proposal_votes = match contract.get_proposals_as_string().call().await {
+    let proposal_votes = match contract
+        .get_proposals_as_string()
+        .block(block_id)
+        .call()
+        .await
+    {
         Ok(proposals) => proposals.replace('\n', "<br/>"),
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
@@ -282,7 +305,7 @@ async fn submit_handler(
         ))
         .await;
 
-    let lock = app_state.contracts.read().await;
+    let lock = app_state.contracts.lock().await;
     let contract = match lock.get(CONTRACT_NAME) {
         Some(contract) => contract,
         None => return helper::ui_alert(&format!("contract {} not deployed", CONTRACT_NAME)),

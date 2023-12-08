@@ -1,12 +1,11 @@
 
 <div class="divider"></div>
-
 <div class="grid grid-cols-2 gap-4">
     <div class="contentCard w-auto"
-        id="lastBlockDetails"
-        hx-get="/last-block-details" 
-        hx-trigger="load, loadLastBlockDetails from:#formContent" 
-        hx-target="#lastBlockDetails"
+        id="blockDetails"
+        hx-get="/block-details" 
+        hx-trigger="load, loadBlockDetails from:#formContent, loadBlockDetails from:#formLoadBlockDetails, loadBlockDetails from:#blockDetails" 
+        hx-target="#blockDetails"
         hx-target-*=".errors"
         hx-swap="innerHTML"
     >
@@ -17,7 +16,7 @@
     <div class="contentCard w-auto"
         id="accountBalances"
         hx-get="/account-balances" 
-        hx-trigger="load, loadAccountBalances from:#formContent" 
+        hx-trigger="load, loadAccountBalances from:#formContent, loadAccountBalances from:#blockDetails" 
         hx-target="#accountBalances"
         hx-target-*=".errors"
         hx-swap="innerHTML"

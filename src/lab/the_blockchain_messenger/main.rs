@@ -5,7 +5,7 @@ use crate::{
 };
 use actix_web::{
     web::{self},
-    HttpResponse, Responder,
+    HttpRequest, HttpResponse, Responder,
 };
 use ethers::contract::abigen;
 use serde::Deserialize;
@@ -48,10 +48,16 @@ async fn load_template_handler(app_state: web::Data<AppState>) -> impl Responder
     load_template(app_state, LAB_PATH, CONTRACT_NAME).await
 }
 
-async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
+async fn tx_result_handler(app_state: web::Data<AppState>, req: HttpRequest) -> impl Responder {
     let result_path = format!("{}/result.html", LAB_PATH);
+    let eth = app_state.eth_client.get_client();
+    let block_id = helper::get_block_id_from_header_value(req.headers());
+    let block_id = match helper::to_block_id(eth, block_id).await {
+        Ok(block_id) => block_id,
+        Err(e) => return helper::ui_alert(&e),
+    };
 
-    let lock = app_state.contracts.read().await;
+    let lock = app_state.contracts.lock().await;
     let contract = match lock.get(CONTRACT_NAME) {
         Some(contract) => contract,
         None => return helper::ui_alert(&format!("contract {} not deployed", CONTRACT_NAME)),
@@ -62,11 +68,12 @@ async fn tx_result_handler(app_state: web::Data<AppState>) -> impl Responder {
     context.insert("contract_address", &contract_address);
 
     let contract = TheBlockchainMessenger::new(contract.address(), contract.client());
-    let counter = match contract.change_counter().call().await {
+    let counter = match contract.change_counter().block(block_id).call().await {
         Ok(counter) => counter,
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
-    let msg = match contract.the_message().call().await {
+
+    let msg = match contract.the_message().block(block_id).call().await {
         Ok(msg) => msg,
         Err(e) => return helper::ui_alert(&e.to_string()),
     };
@@ -102,7 +109,7 @@ async fn submit_handler(
         ))
         .await;
 
-    let lock = app_state.contracts.read().await;
+    let lock = app_state.contracts.lock().await;
     let contract = match lock.get(CONTRACT_NAME) {
         Some(contract) => contract,
         None => return helper::ui_alert(&format!("contract {} not deployed", CONTRACT_NAME)),

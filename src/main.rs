@@ -6,10 +6,10 @@ mod lab;
 
 use client::EthereumClient;
 use futures::executor::block_on;
+use futures::lock::Mutex;
 use lab::voting;
 
-use async_rwlock::RwLock;
-use std::{collections::HashMap, thread};
+use std::{collections::HashMap, sync::Arc, thread};
 
 use actix_files as fs;
 use actix_web::{middleware::Logger, web, App, HttpServer};
@@ -36,6 +36,7 @@ async fn main() -> std::io::Result<()> {
     let client_copy = eth_client.clone().get_client();
     thread::spawn(move || block_on(voting::main::subscribe_to_events(client_copy)));
     let debug_svc = AppDebug::new();
+    let contracts_map = Arc::new(Mutex::new(HashMap::new()));
 
     HttpServer::new(move || {
         let logger = Logger::default();
@@ -44,11 +45,12 @@ async fn main() -> std::io::Result<()> {
         let eth_client = eth_client.clone();
         let addresses = helper::get_all_account_addresses().unwrap();
         let debug_service = debug_svc.clone();
+        let contracts = contracts_map.clone();
 
         let state = AppState {
             tmpl: tera,
             eth_client,
-            contracts: RwLock::new(HashMap::new()),
+            contracts,
             debug_service,
             accounts: addresses,
         };

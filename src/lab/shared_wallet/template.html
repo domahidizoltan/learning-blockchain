@@ -19,7 +19,7 @@
     <div class="contentCard w-auto"
         id="actionResult"
         hx-get="/lab/shared-wallet/result" 
-        hx-trigger="loadResult from:#formContent"
+        hx-trigger="loadResult from:#formContent, loadResult from:#blockDetails"
         hx-target="#actionResult"
         hx-target-*=".errors"
         hx-swap="innerHTML"

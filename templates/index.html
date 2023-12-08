@@ -20,11 +20,23 @@
                 it.classList.remove("clicked");
             }, 200);
         }
+
+        window.addEventListener('htmx:configRequest', function(evt) {
+            evt.detail.headers['Blockid'] = document.getElementById('loadBlockId').value;
+        });
+
+        function triggerBlockDetailsLoad(domId) {
+            document.getElementById('loadBlockId').value=document.getElementById(domId).value;
+            setTimeout(() => {
+                document.getElementById('loadBlockId').value='';
+            }, 1000);
+        }
     </script>
 
 </head>
 
 <body  hx-ext="response-targets" hx-target-*="#errors">
+    <input type="hidden" id="loadBlockId" value=""/>
 
     <div class="drawer drawer-open">
         <input id="my-drawer-2" type="checkbox" class="drawer-toggle" />

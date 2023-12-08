@@ -1,0 +1,39 @@
+<div class="overflow-x-auto">
+    <h2>Block details</h2>
+    <form class="short" id="formLoadBlockDetails" hx-post="/load-block-details" hx-target-*=".errors" hx-on::after-request="this.reset()">
+      <table class="table table-zebra">
+        <tbody>
+          <tr>
+            <th>Block&nbsp;number</th>
+            <td>
+              <input type="number" id="block_number" min="0" value="{{block_number}}"/>
+              <button type="submit" hx-on="mousedown: triggerBlockDetailsLoad('block_number')">➔</button>
+            </td>
+          </tr>
+          <tr>
+            <th>Block hash</th>
+            <td>
+              <input id="block_hash" value="{{block_hash}}"/>
+              <button type="submit" hx-on="mousedown: triggerBlockDetailsLoad('block_hash')">➔</button>
+            </td>
+          </tr>
+          <tr>
+              <th>Parent hash</th>
+              <td class="copyable" data-tip="copy" onclick="copyToClipboard(this)">{{parent_hash}}</td>    
+          </tr>
+          <tr>
+              <th>Block time</th>
+              <td>{{block_time}}</td>    
+          </tr>
+          <tr>
+              <th>Transaction</th>
+              <td class="copyable" data-tip="copy" onclick="copyToClipboard(this)">{{transaction}}</td>
+          </tr>
+          <tr>
+              <th>Gas used</th>
+              <td>{{gas_used}}</td>
+          </tr>
+        </tbody>
+      </table>
+    </form> 
+</div>
