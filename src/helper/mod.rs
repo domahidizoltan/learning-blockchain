@@ -74,7 +74,7 @@ pub fn decode_revert_error(e: &Bytes) -> String {
 
 pub async fn to_block_id(eth: EthClient, input: Option<&str>) -> Result<BlockId, String> {
     match input {
-        Some(input) => {
+        Some(input) if !input.is_empty() => {
             if input.len() == 66 && input[0..2].starts_with("0x") {
                 let hex_decoded = match utils::hex::decode(&input[2..]) {
                     Ok(decoded) => decoded,
@@ -87,7 +87,7 @@ pub async fn to_block_id(eth: EthClient, input: Option<&str>) -> Result<BlockId,
                 Ok(BlockId::from(nr))
             }
         }
-        None => {
+        _ => {
             let nr = match eth.get_block_number().await {
                 Ok(block_number) => block_number.as_u64(),
                 Err(e) => return Err(e.to_string()),
